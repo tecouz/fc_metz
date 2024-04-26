@@ -1,0 +1,16 @@
+/* Reset des marges et padding */
+* {
+    margin: 0;
+    padding: 0;
+}
+
+/* Reset de la taille des boîtes */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+h1 {
+    text-transform: uppercase;
+}

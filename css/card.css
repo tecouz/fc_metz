@@ -1,0 +1,6 @@
+.carte {
+    width: 200px;
+    height: 100px;
+    background: red;
+    border: 1px solid black;
+}
