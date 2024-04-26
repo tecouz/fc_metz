@@ -1,6 +1,29 @@
+
 .carte {
-    width: 200px;
+    /*Longueur*/
+    width: 300px;
+    /*Hauteur*/
     height: 100px;
-    background: red;
-    border: 1px solid black;
+    /*couleur blanc anti-flash*/
+    background: #6e0b14;
+    /* les coins sont arrondi*/
+    border-radius: 5px;
+
+/* Ombre décalée à droite et en bas */
+box-shadow: 5px 5px rgba(0,0,0,0.25);
+    border: 3px solid goldenrod;
+/*aligné le text*/
+    text-align: center;
+    color: white;
+}
+
+.carte h1{
+    /*réduire ou augmenté les marges*/
+    margin: 0px;
+}
+
+.carte p{
+    /*réduire ou augmenté les marges*/
+    margin: 3px;
+    font-size: 17px;
 }
