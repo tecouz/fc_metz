@@ -1,29 +1,35 @@
 
 .carte {
+    display: flex;
+    flex-direction: column;
     /*Longueur*/
-    width: 300px;
+    width: 350px;
     /*Hauteur*/
-    height: 100px;
-    /*couleur blanc anti-flash*/
+    height: 110px;
+    /*couleur fond carte Grenat*/
     background: #6e0b14;
     /* les coins sont arrondi*/
     border-radius: 5px;
 
 /* Ombre décalée à droite et en bas */
-box-shadow: 5px 5px rgba(0,0,0,0.25);
+    box-shadow: 5px 5px rgba(0,0,0,0.25);
     border: 3px solid goldenrod;
 /*aligné le text*/
     text-align: center;
-    color: white;
+    margin-bottom: 15px;
 }
 
-.carte h1{
+.carte h3{
     /*réduire ou augmenté les marges*/
     margin: 0px;
+    color: white;
+    text-transform: none;
 }
 
 .carte p{
     /*réduire ou augmenté les marges*/
     margin: 3px;
+    margin-top: 15px;
     font-size: 17px;
+    color: goldenrod;
 }
