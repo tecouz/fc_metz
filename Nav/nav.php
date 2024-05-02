@@ -19,11 +19,6 @@
         <h3>FC Metz</h3>
 
         <div>
-            <label for="Rechercher"></label>
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" placeholder="Rechercher un joueur" class="searchBar">
-        </div>
-        <div>
             <label for="Passeport"></label>
             <i class="fa-solid fa-passport"></i>
             <a href="../Player/index.php">Passeport du joueur</a>

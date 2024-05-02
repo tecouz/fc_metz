@@ -10,8 +10,10 @@
 *::after {
     box-sizing: border-box;
 }
+
 /* modification Titre principaux*/
-h1, h3 {
+h1,
+h3 {
     text-transform: uppercase;
 
     font-family: "Anton", sans-serif;
@@ -20,8 +22,9 @@ h1, h3 {
 
 
 }
+
 /* modification paragraphe et titre secondaire*/
-p{
+p {
 
     font-family: "Mitr", sans-serif;
     font-weight: 400;
@@ -36,15 +39,18 @@ body {
 }
 
 header {
-    background-color : #6e0b14;
+    background-color: #6e0b14;
     width: 100vw;
 }
+
 /* modification de la boite qui contient les autres boites*/
-.containerPage{
-display: flex;
-flex-direction: column;
-gap: 30px;
+.containerPage {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    margin-left: 300px;
 }
+
 /* modification des boites */
 .container {
     display: flex;

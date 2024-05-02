@@ -1,11 +1,11 @@
 <?php
 // Connexion à la base de données
 $servername = "localhost"; // ou votre adresse IP
-$username = "root";
-$password = "";
-$database = "fc_metz";
+$username = "root"; //nom d'utilisateur
+$password = ""; // MDP
+$database = "fc_metz"; // nom de la base de donnée
 
-$conn = new mysqli($servername, $username, $password, $database);
+$conn = new mysqli($servername, $username, $password, $database); // requête SQL de connexion a la base de donnée
 
 // Vérifier la connexion
 if ($conn->connect_error) {
@@ -30,6 +30,9 @@ if ($conn->connect_error) {
 </head>
 
 <body>
+    <?php
+    include "../Nav/nav.php";
+    ?>
     <div class="containerPage">
         <div>
             <h1>Statistique Spécifiques Saison 2023/2024 du joueur</h1>
@@ -38,29 +41,42 @@ if ($conn->connect_error) {
 
         <div class="container">
             <?php
-            // ID du joueur dont vous voulez afficher les statistiques
-            $player_id = 1; // Remplacez 1 par l'ID du joueur souhaité
-            
-            // Requête SQL pour récupérer les statistiques du joueur spécifique
-            $sql = "SELECT * FROM statistic WHERE player_id = $player_id";
+            $stmt = $conn->prepare("SELECT * FROM statistic WHERE player_id = ?");
+            $stmt->bind_param("i", $player_id);
+            $player_id = 1;
+            // Exécution
+            $stmt->execute();
 
-            $result = $conn->query($sql);
+            // Récupération des résultats
+            $result = $stmt->get_result();
 
+            // Boucle d'affichage des résultats
             if ($result->num_rows > 0) {
-                // Afficher les statistiques dans les cartes
+
                 while ($row = $result->fetch_assoc()) {
-                    // Afficher une carte pour chaque statistique disponible
+
                     foreach ($row as $key => $value) {
+
                         if ($key !== 'player_id' && $key !== 'statistic_id' && $value !== null) {
+
+                            // Échappement HTML
+                            $key = htmlspecialchars($key);
+                            $value = htmlspecialchars($value);
+
                             echo "<div class='carte'>";
                             echo "<h3>" . ucwords(str_replace('_', ' ', $key)) . "</h3>";
-                            echo "<p>" . $value . "</p>";
+                            echo "<p>$value</p>";
                             echo "</div>";
                         }
+
                     }
+
                 }
+
             } else {
-                echo "Aucune statistique trouvée pour ce joueur";
+
+                echo "Aucune statistique trouvée";
+
             }
             ?>
         </div>
