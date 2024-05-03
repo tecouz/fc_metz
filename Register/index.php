@@ -1,16 +1,5 @@
 <?php
-// Connexion à la base de données
-$servername = "localhost"; // ou votre adresse IP
-$username = "root"; //nom d'utilisateur
-$password = ""; // MDP
-$database = "fc_metz"; // nom de la base de donnée
-
-$conn = new mysqli($servername, $username, $password, $database); // requête SQL de connexion a la base de donnée
-
-// Vérifier la connexion
-if ($conn->connect_error) {
-    die("Échec de la connexion : " . $conn->connect_error);
-}
+require_once $_SERVER["DOCUMENT_ROOT"] . "/include/connect.php";
 
 // Vérifier si le formulaire a été soumis
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -18,14 +7,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $users_name = htmlspecialchars($_POST['users_name']);
     $users_firstname = htmlspecialchars($_POST['users_firstname']);
     $users_login = htmlspecialchars($_POST['users_login']);
+    $user_mail = htmlspecialchars($_POST['user_mail']); // Récupérer l'email
     $plainPassword = htmlspecialchars($_POST['users_password']);
 
     // Hasher le mot de passe
     $hashedPassword = password_hash($plainPassword, PASSWORD_DEFAULT);
 
     // Préparer et exécuter la requête SQL pour insérer un nouvel utilisateur
-    $stmt = $conn->prepare('INSERT INTO users (users_name, users_firstname, users_login, users_password) VALUES (?, ?, ?, ?)');
-    $stmt->bind_param('ssss', $users_name, $users_firstname, $users_login, $hashedPassword);
+    $stmt = $db->prepare('INSERT INTO users (users_name, users_firstname, users_login, user_mail, users_password) VALUES (?, ?, ?, ?, ?)');
+    $stmt->bindParam(1, $users_name, PDO::PARAM_STR);
+    $stmt->bindParam(2, $users_firstname, PDO::PARAM_STR);
+    $stmt->bindParam(3, $users_login, PDO::PARAM_STR);
+    $stmt->bindParam(4, $user_mail, PDO::PARAM_STR); // Lier l'email
+    $stmt->bindParam(5, $hashedPassword, PDO::PARAM_STR);
     $stmt->execute();
 
     // Rediriger vers une page de confirmation ou de connexion
@@ -51,6 +45,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <label for="users_login">Nom d'utilisateur :</label>
         <input type="text" id="users_login" name="users_login" required><br>
+
+        <label for="user_mail">Email :</label> <!-- Ajouter un champ pour l'email -->
+        <input type="email" id="user_mail" name="user_mail" required><br>
 
         <label for="users_password">Mot de passe :</label>
         <input type="password" id="users_password" name="users_password" required><br>

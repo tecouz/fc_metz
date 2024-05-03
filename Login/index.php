@@ -1,3 +1,36 @@
+<?php
+require_once $_SERVER["DOCUMENT_ROOT"] . "/include/connect.php";
+
+$errorMessage = "";
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    if (isset($_POST['username']) && isset($_POST['password'])) {
+        $username = filter_input(INPUT_POST, "username", FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+        $password = filter_input(INPUT_POST, "password", FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+
+        $stmt = $db->prepare("SELECT users_id, users_password, users_name FROM users WHERE users_login = ?");
+        $stmt->bindParam(1, $username);
+        $stmt->execute();
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC); // Récupérer les résultats sous forme de tableau associatif
+
+        if (count($result) > 0) {
+            $row = $result[0]; // Récupérer la première ligne du résultat
+            if (password_verify($password, $row["users_password"])) {
+                session_start();
+                $_SESSION['user_connected'] = "ok";
+                $_SESSION['user_name'] = $row["users_name"];
+                header("Location: ../Player/index.php");
+                exit();
+            } else {
+                $errorMessage = "Identifiants incorrects.";
+            }
+        } else {
+            $errorMessage = "Identifiants incorrects.";
+        }
+    } else {
+        $errorMessage = "Veuillez remplir tous les champs.";
+    }
+}
+?>
 <!-- login.php -->
 <!DOCTYPE html>
 <html>
@@ -10,38 +43,24 @@
     <h1>Connexion</h1>
 
     <?php
-    $servername = "localhost"; // ou votre adresse IP
-    $username = "root"; //nom d'utilisateur
-    $password = ""; // MDP
-    $database = "fc_metz"; // nom de la base de donnée
-    $conn = new mysqli($servername, $username, $password, $database); // requête SQL de connexion a la base de donnée
-    
-    // Vérifier la connexion
-    if ($conn->connect_error) {
-        die("Échec de la connexion : " . $conn->connect_error);
-    }
-
     // Vérifier si le formulaire a été soumis
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Récupérer les données du formulaire
         $username = $_POST["username"];
         $password = $_POST["password"];
 
-        $stmt = $conn->prepare("SELECT users_id, users_password FROM users WHERE users_login = ?");
-        $stmt->bind_param("s", $username);
+        $stmt = $db->prepare("SELECT users_id, users_password FROM users WHERE users_login = ?");
         $stmt->execute();
-        $result = $stmt->get_result();
-
 
         if ($result->num_rows > 0) {
             $row = $result->fetch_assoc();
-            $hashedPassword = $row["users_password"]; // Supposons que le mot de passe haché est stocké dans la colonne "password_hash"
-    
+            $hashedPassword = $row["users_password"];
+
             // Vérifier le mot de passe
             if (password_verify($password, $hashedPassword)) {
-                // Identifiants corrects, rediriger vers une page sécurisée
+                // Identifiants corrects, démarrer la session
                 session_start();
-                $_SESSION["users_login"] = $username;
+                $_SESSION["user_connected"] = "ok";
                 header("Location: ../Player/index.php");
                 exit();
             } else {
@@ -50,11 +69,7 @@
         } else {
             $error_message = "Identifiants incorrects.";
         }
-
-        $stmt->close();
     }
-
-    $conn->close();
     ?>
 
     <?php if (isset($error_message)) { ?>

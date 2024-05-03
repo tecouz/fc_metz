@@ -1,16 +1,6 @@
 <?php
-// Connexion à la base de données
-$servername = "localhost"; // ou votre adresse IP
-$username = "root"; //nom d'utilisateur
-$password = ""; // MDP
-$database = "fc_metz"; // nom de la base de donnée
-
-$conn = new mysqli($servername, $username, $password, $database); // requête SQL de connexion a la base de donnée
-
-// Vérifier la connexion
-if ($conn->connect_error) {
-    die("Échec de la connexion : " . $conn->connect_error);
-}
+require_once $_SERVER["DOCUMENT_ROOT"] . "/include/connect.php";
+require_once $_SERVER["DOCUMENT_ROOT"] . "/include/protect.php";
 ?>
 
 <!DOCTYPE html>
@@ -30,9 +20,7 @@ if ($conn->connect_error) {
 </head>
 
 <body>
-    <?php
-    include "../Nav/nav.php";
-    ?>
+    <?php include "../Nav/nav.php"; ?>
     <div class="containerPage">
         <div>
             <h1>Statistique Spécifiques Saison 2023/2024 du joueur</h1>
@@ -41,19 +29,18 @@ if ($conn->connect_error) {
 
         <div class="container">
             <?php
-            $stmt = $conn->prepare("SELECT * FROM statistic WHERE player_id = ?");
-            $stmt->bind_param("i", $player_id);
+            $stmt = $db->prepare("SELECT * FROM statistic WHERE player_id = ?");
+            $stmt->bindParam(1, $player_id, PDO::PARAM_INT);
             $player_id = 1;
-            // Exécution
             $stmt->execute();
 
             // Récupération des résultats
-            $result = $stmt->get_result();
+            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Boucle d'affichage des résultats
-            if ($result->num_rows > 0) {
+            if (count($result) > 0) {
 
-                while ($row = $result->fetch_assoc()) {
+                foreach ($result as $row) {
 
                     foreach ($row as $key => $value) {
 
@@ -84,8 +71,3 @@ if ($conn->connect_error) {
 </body>
 
 </html>
-
-<?php
-// Fermer la connexion à la base de données
-$conn->close();
-?>

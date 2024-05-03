@@ -1,16 +1,6 @@
 <?php
-// Connexion à la base de données
-$servername = "localhost"; // ou votre adresse IP
-$username = "root"; //nom d'utilisateur
-$password = ""; // MDP
-$database = "fc_metz"; // nom de la base de donnée
-
-$conn = new mysqli($servername, $username, $password, $database); // requête SQL de connexion a la base de donnée
-
-// Vérifier la connexion
-if ($conn->connect_error) {
-    die("Échec de la connexion : " . $conn->connect_error);
-}
+require_once $_SERVER["DOCUMENT_ROOT"] . "/include/connect.php";
+require_once $_SERVER["DOCUMENT_ROOT"] . "/include/protect.php";
 ?>
 
 <!DOCTYPE html>
@@ -40,18 +30,17 @@ if ($conn->connect_error) {
 
         <div class="container">
             <?php
-            $stmt = $conn->prepare("SELECT * FROM player WHERE player_id = ?");
-            $stmt->bind_param("i", $player_id);
+            $stmt = $db->prepare("SELECT * FROM player WHERE player_id = ?");
+            $stmt->bindParam(1, $player_id, PDO::PARAM_INT);
             $player_id = 1;
-            // Exécution
             $stmt->execute();
 
             // Récupération des résultats
-            $result = $stmt->get_result();
+            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Affichage des informations du joueur
-            if ($result->num_rows > 0) {
-                $row = $result->fetch_assoc();
+            if (count($result) > 0) {
+                $row = $result[0];
                 foreach ($row as $key => $value) {
                     // Exclure player_id et player_image
                     if ($key !== 'player_id' && $key !== 'player_image') {
@@ -76,5 +65,5 @@ if ($conn->connect_error) {
 
 <?php
 // Fermer la connexion à la base de données
-$conn->close();
+$db = null;
 ?>
