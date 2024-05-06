@@ -28,6 +28,11 @@
             <i class="fa-solid fa-chart-column"></i>
             <a href="../player stats/index.php">Statistique</a>
         </div>
+        <div>
+            <label for="Accueil"></label>
+            <i class="fa-solid fa-chart-column"></i>
+            <a href="../Accueil/index.php">Accueil</a>
+        </div>
     </div>
 </body>
 
