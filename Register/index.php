@@ -20,11 +20,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->bindParam(3, $users_login, PDO::PARAM_STR);
     $stmt->bindParam(4, $user_mail, PDO::PARAM_STR); // Lier l'email
     $stmt->bindParam(5, $hashedPassword, PDO::PARAM_STR);
-    $stmt->execute();
 
-    // Rediriger vers une page de confirmation ou de connexion
-    header('Location: ../Login/index.php');
-    exit;
+    if ($stmt->execute()) {
+        // Rediriger vers une page de confirmation ou de connexion
+        $redirectPath = $_SERVER["DOCUMENT_ROOT"] . "/Login/index.php";
+        if (file_exists($redirectPath)) {
+            header('Location: ../Login/index.php');
+            exit;
+        } else {
+            echo "Le fichier de redirection n'existe pas.";
+        }
+    } else {
+        echo "Une erreur s'est produite lors de l'insertion des données.";
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -32,10 +40,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <head>
     <title>Inscription</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Mitr:wght@200;300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="..\css\login.css">
 </head>
 
 <body>
-    <h1>Inscription</h1>
+<div class="containerPage">
+        <div class="CardLogin">
+            <div class="CardLogin-Left">
+                
+               
+            </div>
+            <div class="CardLogin-Right">
+   
     <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>">
         <label for="users_name">Nom :</label>
         <input type="text" id="users_name" name="users_name" required><br>
@@ -52,8 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <label for="users_password">Mot de passe :</label>
         <input type="password" id="users_password" name="users_password" required><br>
 
-        <input type="submit" value="S'inscrire">
+        <button type="submit">S'inscrire</button>
     </form>
+    </div>
 </body>
 
 </html>

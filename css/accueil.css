@@ -1,0 +1,109 @@
+.containerPage{
+    margin: 20px;
+}
+
+/* Style pour le formulaire de recherche */
+.searchPlayer {
+    background-color: #EBEBEB;
+    padding: 20px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.searchPlayer label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.searchPlayer input[type="text"],
+.searchPlayer select {
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    margin-bottom: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.searchPlayer input[type="submit"] {
+    background-color: #6e0b14;
+    color: goldenrod;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.searchPlayer input[type="submit"]:hover {
+    transform: scale(1.1);
+}
+
+.searchPlayer input[type="submit"]:active {
+    transform: scale(0.9);
+}
+
+/* Style pour la liste des joueurs */
+.listPlayer table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.listPlayer th, .listPlayer td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.listPlayer th {
+    background-color: #6e0b14;
+    color: goldenrod;
+}
+
+.listPlayer td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer; /* Ajoute un curseur en forme de pointeur */
+}
+
+
+.listPlayer tr:hover {
+    background-color: #f5f5f5;
+}
+
+/* Style pour la pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.pagination a {
+    color: black;
+    float: left;
+    padding: 8px 16px;
+    text-decoration: none;
+    transition: background-color 0.3s;
+    margin: 0 4px;
+}
+
+.pagination a.active {
+    background-color: #6e0b14;
+    color: goldenrod;
+    border: 3px solid goldenrod;
+    border-radius: 5px;
+}
+
+.pagination a:hover:not(.active) {
+    background-color: #ddd; 
+}
+
+.row-even {
+    background-color: #f2f2f2;
+}
+
+.row-odd {
+    background-color: #e6e6e6;
+}
+

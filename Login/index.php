@@ -10,15 +10,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt = $db->prepare("SELECT users_id, users_password, users_name FROM users WHERE users_login = ?");
         $stmt->bindParam(1, $username);
         $stmt->execute();
-        $result = $stmt->fetchAll(PDO::FETCH_ASSOC); // Récupérer les résultats sous forme de tableau associatif
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (count($result) > 0) {
-            $row = $result[0]; // Récupérer la première ligne du résultat
+            $row = $result[0];
             if (password_verify($password, $row["users_password"])) {
                 session_start();
                 $_SESSION['user_connected'] = "ok";
                 $_SESSION['user_name'] = $row["users_name"];
-                header("Location: ../Player/index.php");
+                header("Location: ../Accueil/index.php");
                 exit();
             } else {
                 $errorMessage = "Identifiants incorrects.";
@@ -31,56 +31,44 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 ?>
-<!-- login.php -->
 <!DOCTYPE html>
 <html>
 
 <head>
     <title>Page de connexion</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Mitr:wght@200;300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="..\css\login.css">
 </head>
 
 <body>
-    <h1>Connexion</h1>
 
-    <?php
-    // Vérifier si le formulaire a été soumis
-    if ($_SERVER["REQUEST_METHOD"] == "POST") {
-        // Récupérer les données du formulaire
-        $username = $_POST["username"];
-        $password = $_POST["password"];
+    <div class="containerPage">
+        <div class="CardLogin">
+            <div class="CardLogin-Left">
 
-        $stmt = $db->prepare("SELECT users_id, users_password FROM users WHERE users_login = ?");
-        $stmt->execute();
 
-        if ($result->num_rows > 0) {
-            $row = $result->fetch_assoc();
-            $hashedPassword = $row["users_password"];
-
-            // Vérifier le mot de passe
-            if (password_verify($password, $hashedPassword)) {
-                // Identifiants corrects, démarrer la session
-                session_start();
-                $_SESSION["user_connected"] = "ok";
-                header("Location: ../Player/index.php");
-                exit();
-            } else {
-                $error_message = "Identifiants incorrects.";
-            }
-        } else {
-            $error_message = "Identifiants incorrects.";
-        }
-    }
-    ?>
-
-    <?php if (isset($error_message)) { ?>
-    <p style="color: red;"><?php echo $error_message; ?></p>
-    <?php } ?>
-
-    <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
-        Nom d'utilisateur : <input type="text" name="username"><br>
-        Mot de passe : <input type="password" name="password"><br>
-        <input type="submit" value="Se connecter">
-    </form>
+            </div>
+            <div class="CardLogin-Right">
+                <?php if (!empty($errorMessage)) { ?>
+                <p class="error-message"><?php echo $errorMessage; ?></p>
+                <?php } ?>
+                <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
+                    <label for="username">Nom d'utilisateur</label>
+                    <input type="text" id="username" name="username" autocomplete="username"
+                        placeholder="nom d'utilisateur" required>
+                    <br> <label for="password">Mot de passe</label>
+                    <input type="password" id="password" name="password" placeholder="mot de passe" required>
+                    <br> <button type="submit">Se connecter</button>
+                    <br><a href="..\Register\index.php">s'inscrire</p>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
