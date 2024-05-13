@@ -37,24 +37,10 @@ document.addEventListener("DOMContentLoaded", function () {
   // Sélectionner l'élément HTML pour le formulaire d'ajout d'événement
   const eventForm = document.getElementById("eventForm");
 
-  // Gestionnaire d'événement pour la soumission du formulaire d'ajout d'événement
-  eventForm.addEventListener("submit", (event) => {
-    event.preventDefault(); // Empêcher le rechargement de la page
-
-    const eventTitle = document.getElementById("eventTitle").value;
-    const eventDate = new Date(document.getElementById("eventDate").value);
-
-    // Ajouter un nouvel événement
-    addEvent(eventTitle, eventDate.toISOString().split("T")[0]);
-
-    // Réinitialiser le formulaire
-    eventForm.reset();
-    eventFormContainer.style.display = "none";
-  });
-
   // Sélectionner les éléments HTML pour la table du calendrier et le conteneur du formulaire d'ajout d'événement
   const calendar = document.getElementById("calendar");
-  const eventFormContainer = document.getElementById("eventFormContainer");
+  const eventDetails = document.getElementById("eventDetails");
+  const eventList = document.getElementById("eventList");
 
   // Gestionnaire d'événement pour la sélection d'un mois
   monthSelect.addEventListener("change", () => {
@@ -68,6 +54,53 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Génération initiale du calendrier
   generateCalendar(monthSelect.value, yearSelect.value);
+
+  // Sélectionner les cellules du calendrier
+  const calendarCells = document.querySelectorAll("#calendar td");
+
+  // Ajouter un gestionnaire d'événement pour les clics sur les cellules
+  calendarCells.forEach((cell) => {
+    cell.addEventListener("click", () => {
+      const selectedDate = new Date(
+        yearSelect.value,
+        monthSelect.value - 1,
+        cell.textContent
+      );
+      const formattedDate = selectedDate.toISOString().split("T")[0];
+
+      // Afficher le formulaire d'ajout d'événement
+      eventDetails.style.display = "block";
+
+      // Remplir le champ de date avec la date sélectionnée
+      const eventDateInput = document.getElementById("eventDate");
+      eventDateInput.value = formattedDate;
+
+      // Récupérer les événements pour la date sélectionnée
+      fetchEvents(formattedDate);
+    });
+  });
+
+  // Gestionnaire d'événement pour le bouton "Ajouter"
+  const addEventButton = document.getElementById("addEvent");
+  addEventButton.addEventListener("click", () => {
+    const eventTitle = document.getElementById("eventTitle").value;
+    const eventDate = document.getElementById("eventDate").value;
+
+    // Ajouter un nouvel événement
+    addEvent(eventTitle, eventDate);
+
+    // Réinitialiser le formulaire
+    eventForm.reset();
+    eventDetails.style.display = "none";
+    eventList.innerHTML = ""; // Effacer la liste des événements
+  });
+
+  // Gestionnaire d'événement pour le bouton "Annuler"
+  const cancelEventButton = document.getElementById("cancelEvent");
+  cancelEventButton.addEventListener("click", () => {
+    eventDetails.style.display = "none";
+    eventList.innerHTML = ""; // Effacer la liste des événements
+  });
 });
 
 function generateCalendar(month, year) {
@@ -125,9 +158,93 @@ function generateCalendar(month, year) {
 
   table.appendChild(tbody);
   calendar.appendChild(table);
+
+  // Sélectionner les cellules du calendrier après la génération
+  const calendarCells = document.querySelectorAll("#calendar td");
+
+  // Ajouter un gestionnaire d'événement pour les clics sur les cellules
+  calendarCells.forEach((cell) => {
+    cell.addEventListener("click", () => {
+      const selectedDate = new Date(
+        yearSelect.value,
+        monthSelect.value - 1,
+        cell.textContent
+      );
+      const formattedDate = selectedDate.toISOString().split("T")[0];
+
+      // Afficher le formulaire d'ajout d'événement
+      eventDetails.style.display = "block";
+
+      // Remplir le champ de date avec la date sélectionnée
+      const eventDateInput = document.getElementById("eventDate");
+      eventDateInput.value = formattedDate;
+
+      // Récupérer les événements pour la date sélectionnée
+      fetchEvents(formattedDate);
+    });
+  });
 }
 
-// Fonction pour ajouter un nouvel événement
 function addEvent(title, eventDate) {
-  // Implémentez la logique pour ajouter un nouvel événement sur le serveur
+  // Créer un objet FormData pour stocker les données de l'événement
+  const formData = new FormData();
+  formData.append("action", "add_event");
+  formData.append("eventTitle", title);
+  formData.append("eventDate", eventDate);
+
+  // Récupérer les autres données du formulaire
+  const eventDescription = document.getElementById("eventDescription").value;
+  const eventStartTime = document.getElementById("eventStartTime").value;
+  const eventEndTime = document.getElementById("eventEndTime").value;
+  const eventLocation = document.getElementById("eventLocation").value;
+  const eventParticipants = document.getElementById("eventParticipants").value;
+
+  // Ajouter les autres données au FormData
+  formData.append("eventDescription", eventDescription);
+  formData.append("eventStartTime", eventStartTime);
+  formData.append("eventEndTime", eventEndTime);
+  formData.append("eventLocation", eventLocation);
+  formData.append("eventParticipants", eventParticipants);
+
+  // Envoyer la requête AJAX
+  fetch("add_event.php", {
+    method: "POST",
+    body: formData,
+  })
+    .then((response) => response.text())
+    .then((data) => {
+      console.log(data); // Afficher la réponse du serveur dans la console
+      // Récupérer les événements pour la date sélectionnée
+      fetchEvents(eventDate);
+    })
+    .catch((error) => {
+      console.error("Erreur lors de l'ajout de l'événement :", error);
+    });
 }
+
+function fetchEvents(eventDate) {
+  // Envoyer une requête AJAX pour récupérer les événements pour la date sélectionnée
+  fetch(`get_events.php?date=${eventDate}`)
+    .then((response) => response.json())
+    .then((events) => {
+      const eventList = document.getElementById("eventList");
+      eventList.innerHTML = ""; // Effacer la liste des événements
+
+      // Afficher les événements dans la liste
+      if (events.length > 0) {
+        const ul = document.createElement("ul");
+        events.forEach((event) => {
+          const li = document.createElement("li");
+          li.textContent = `${event.title} (${event.start_time} - ${event.end_time})`;
+          ul.appendChild(li);
+        });
+        eventList.appendChild(ul);
+      } else {
+        eventList.textContent = "Aucun événement pour cette date.";
+      }
+    })
+    .catch((error) => {
+      console.error("Erreur lors de la récupération des événements :", error);
+    });
+}
+s;
