@@ -16,37 +16,31 @@ $stmt = $db->prepare($sql);
 $stmt->execute();
 $scouts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Vérifier si la requête est une requête POST avec l'action "add_event"
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_event') {
-    $eventTitle = $_POST['eventTitle'];
-    $eventDescription = $_POST['eventDescription'];
-    $eventDate = $_POST['eventDate'];
-    $eventStartTime = $_POST['eventStartTime'] ? $_POST['eventStartTime'] : null;
-    $eventEndTime = $_POST['eventEndTime'] ? $_POST['eventEndTime'] : null;
-    $eventLocation = $_POST['eventLocation'];
-    $eventParticipants = $_POST['eventParticipants'];
 
-    // Préparer et exécuter la requête SQL pour insérer un nouvel événement
-    $stmt = $db->prepare('INSERT INTO evenement (evenement_title, evenement_description, evenement_date, evenement_start_time, evenement_end_time, evenement_location, evenement_participants) VALUES (?, ?, ?, ?, ?, ?, ?)');
-    $stmt->bindParam(1, $eventTitle, PDO::PARAM_STR);
-    $stmt->bindParam(2, $eventDescription, PDO::PARAM_STR);
-    $stmt->bindParam(3, $eventDate, PDO::PARAM_STR);
-    $stmt->bindParam(4, $eventStartTime, PDO::PARAM_STR);
-    $stmt->bindParam(5, $eventEndTime, PDO::PARAM_STR);
-    $stmt->bindParam(6, $eventLocation, PDO::PARAM_STR);
-    $stmt->bindParam(7, $eventParticipants, PDO::PARAM_STR);
+function getEventsForMonth($month, $year)
+{
+    global $db; // Utiliser la variable $db pour accéder à la connexion à la base de données
 
-    if ($stmt->execute()) {
-        echo "L'événement a été ajouté avec succès.";
-        // Rediriger vers la même page pour éviter la résoumission des données
-        header('Location: ' . $_SERVER['PHP_SELF'] . '?page=2');
-        exit;
-    } else {
-        echo "Une erreur s'est produite lors de l'ajout de l'événement.";
-    }
-} else {
-    echo "Requête invalide.";
+    // Préparer la requête SQL pour récupérer les événements du mois spécifié
+    $stmt = $db->prepare("SELECT * FROM evenement WHERE MONTH(evenement_date) = ? AND YEAR(evenement_date) = ?");
+    $stmt->bindParam(1, $month, PDO::PARAM_INT);
+    $stmt->bindParam(2, $year, PDO::PARAM_INT);
+    $stmt->execute();
+
+    // Récupérer les résultats
+    $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    return $events;
 }
+
+
+// Définir le mois et l'année actuels
+$today = new DateTime();
+$currentMonth = $today->format('n'); // Mois actuel (1-12)
+$currentYear = $today->format('Y'); // Année actuelle
+
+// Récupérer les événements du mois en cours
+$events = getEventsForMonth($currentMonth, $currentYear);
 ?>
 
 
@@ -89,48 +83,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             <p>Aucun scout trouvé.</p>
         <?php endif;
     } elseif ($currentPage == 2) {
-        // Code pour afficher le calendrier
-        echo '<h2>Calendrier</h2>';
         ?>
-        <label for="monthSelect">Mois :</label>
-        <select id="monthSelect"></select>
-
-        <label for="yearSelect">Année :</label>
-        <select id="yearSelect"></select>
-
-        <table id="calendar"></table>
-
-        <div id="eventDetails" style="display: none;">
-            <h2>Détails de l'événement</h2>
-            <form id="eventForm" method="post">
-                <input type="hidden" name="action" value="add_event">
-                <input type="hidden" id="eventDate" name="eventDate">
-                <label for="eventTitle">Titre :</label>
-                <input type="text" id="eventTitle" name="eventTitle" required>
-                <br>
-                <label for="eventDescription">Description :</label>
-                <textarea id="eventDescription" name="eventDescription"></textarea>
-                <br>
-                <label for="eventStartTime">Heure de début :</label>
-                <input type="time" id="eventStartTime" name="eventStartTime">
-                <br>
-                <label for="eventEndTime">Heure de fin :</label>
-                <input type="time" id="eventEndTime" name="eventEndTime">
-                <br>
-                <label for="eventLocation">Lieu :</label>
-                <input type="text" id="eventLocation" name="eventLocation">
-                <br>
-                <label for="eventParticipants">Participants :</label>
-                <textarea id="eventParticipants" name="eventParticipants"></textarea>
-                <br>
-                <button type="submit">Ajouter</button>
-                <button type="button" id="cancelEvent">Annuler</button>
-            </form>
+        <div class="container">
+            <div>
+                <label for="monthSelect">Mois :</label>
+                <select id="monthSelect"></select>
+                <label for="yearSelect">Année :</label>
+                <select id="yearSelect"></select>
+            </div>
+            <div id="addEvntBtn">Ajouter un événement</div>
+            <div id="calendar"></div>
+            <div id="eventList">
+                <h3>Événements du mois</h3>
+                <?php if (count($events) > 0) { ?>
+                    <ul>
+                        <?php foreach ($events as $event) { ?>
+                            <li>
+                                <strong><?php echo $event['evenement_title']; ?></strong>
+                                <p><?php echo $event['evenement_description']; ?></p>
+                                <p>Date : <?php echo date('d/m/Y', strtotime($event['evenement_date'])); ?></p>
+                                <p>Heure de début : <?php echo $event['evenement_start_time']; ?></p>
+                                <p>Heure de fin : <?php echo $event['evenement_end_time']; ?></p>
+                                <p>Lieu : <?php echo $event['evenement_location']; ?></p>
+                                <p>Participants : <?php echo $event['evenement_participants']; ?></p>
+                            </li>
+                        <?php } ?>
+                    </ul>
+                <?php } else { ?>
+                    <p>Aucun événement pour ce mois.</p>
+                <?php } ?>
+            </div>
         </div>
+        <?php
+    }
+    ?>
 
-        <script src="../js/calendar.js"></script>
-
-    <?php } ?>
+    <script src="../js/calendar.js"></script>
 </body>
 
 </html>

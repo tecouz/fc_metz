@@ -28,8 +28,7 @@ if ($player_id !== null && !isset($_GET['player_id'])) {
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Mitr:wght@200;300;400;500;600;700&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Mitr:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/card.css">
 </head>
@@ -39,9 +38,13 @@ if ($player_id !== null && !isset($_GET['player_id'])) {
     include "../Nav/nav.php";
     ?>
     <div class="containerPage">
-        <div>
-            <h1>Informations du joueur</h1>
-        </div>
+    <div class="player-header">
+    <h1>Informations du joueur</h1>
+    <?php if ($player_id !== null) : ?>
+        <a href="../CRUD/process.php?player_id=<?php echo $player_id; ?>" class="edit-button">Modifier</a>
+
+    <?php endif; ?>
+</div>
 
         <div class="container">
             <?php

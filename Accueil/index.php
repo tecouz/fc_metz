@@ -26,6 +26,23 @@ function convertDate($date)
     }
 }
 
+// Fonction pour déterminer la couleur de fond en fonction de l'évaluation
+function getBackgroundColor($evaluation)
+{
+    switch ($evaluation) {
+        case 'A':
+            return 'green';
+        case 'B':
+            return 'lightgreen';
+        case 'C':
+            return 'orange';
+        case 'D':
+            return 'red';
+        default:
+            return 'transparent';
+    }
+}
+
 // Nombre de joueurs à afficher par page
 $playersPerPage = 20;
 
@@ -77,7 +94,7 @@ $totalPages = ceil($totalPlayers / $playersPerPage);
 
 // Construire la requête SQL dynamique pour récupérer les joueurs de la page actuelle
 $sql = "SELECT player.player_id, player.player_name, player.player_firstname, player.player_position, player.player_club,
-               YEAR(CURDATE()) - YEAR(player.player_birthday) AS player_age
+               YEAR(CURDATE()) - YEAR(player.player_birthday) AS player_age, player.player_evaluation
         FROM player";
 
 // Si le tableau $conditions n'est pas vide, ajouter les conditions de filtrage à la requête SQL
@@ -162,7 +179,7 @@ $result = $stmt->fetchAll(PDO::FETCH_ASSOC); // Récupérer les résultats sous 
             // Afficher les résultats dans un tableau HTML
             if (count($result) > 0) {
                 echo "<table>";
-                echo "<tr><th>Nom</th><th>Prénom</th><th>Poste</th><th>Club</th><th>Âge</th></tr>";
+                echo "<tr><th>Nom</th><th>Prénom</th><th>Poste</th><th>Club</th><th>Âge</th><th>Évaluation</th></tr>";
                 $rowCount = 0;
                 foreach ($result as $row) {
                     $rowClass = ($rowCount % 2 == 0) ? 'row-even' : 'row-odd'; // Classe CSS pour alterner les couleurs de ligne
@@ -173,6 +190,7 @@ $result = $stmt->fetchAll(PDO::FETCH_ASSOC); // Récupérer les résultats sous 
                     echo "<td onclick=\"window.location.href='../Player/index.php?player_id=" . $row['player_id'] . "'\">" . htmlspecialchars($row['player_position']) . "</td>";
                     echo "<td onclick=\"window.location.href='../Player/index.php?player_id=" . $row['player_id'] . "'\">" . htmlspecialchars($row['player_club']) . "</td>";
                     echo "<td onclick=\"window.location.href='../Player/index.php?player_id=" . $row['player_id'] . "'\">" . htmlspecialchars($row['player_age']) . "</td>";
+                    echo "<td onclick=\"window.location.href='../Player/index.php?player_id=" . $row['player_id'] . "'\" style=\"background-color: " . getBackgroundColor($row['player_evaluation']) . ";\">" . htmlspecialchars($row['player_evaluation']) . "</td>"; // Affichage de la valeur de player_evaluation avec couleur de fond
                     echo "</tr>";
                     $rowCount++;
                 }
