@@ -17,7 +17,11 @@
 <body>
     <div class="nav">
         <h3>FC Metz</h3>
-
+        <div>
+            <label for="Accueil"></label>
+            <i class="fa-solid fa-chart-column"></i>
+            <a href="../Accueil/index.php">Accueil</a>
+        </div>
         <div>
             <label for="Passeport"></label>
             <i class="fa-solid fa-passport"></i>
@@ -31,7 +35,17 @@
         <div>
             <label for="Accueil"></label>
             <i class="fa-solid fa-chart-column"></i>
-            <a href="../Accueil/index.php">Accueil</a>
+            <a href="../Notes informations/index.php">Notes d'informations</a>
+        </div>
+        <div>
+            <label for="Accueil"></label>
+            <i class="fa-solid fa-chart-column"></i>
+            <a href="../Scouting report/index.php">Rapport de Scout</a>
+        </div>
+        <div>
+            <label for="Accueil"></label>
+            <i class="fa-solid fa-chart-column"></i>
+            <a href="../video/index.php">Vidéo</a>
         </div>
     </div>
 </body>

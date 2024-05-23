@@ -18,6 +18,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 session_start();
                 $_SESSION['user_connected'] = "ok";
                 $_SESSION['user_name'] = $row["users_name"];
+                $_SESSION['user_id'] = $row["users_id"]; // Stocker l'ID de l'utilisateur dans la session
+
                 header("Location: ../Accueil/index.php");
                 exit();
             } else {
@@ -55,7 +57,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
             <div class="CardLogin-Right">
                 <?php if (!empty($errorMessage)) { ?>
-                <p class="error-message"><?php echo $errorMessage; ?></p>
+                    <p class="error-message"><?php echo $errorMessage; ?></p>
                 <?php } ?>
                 <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
                     <label for="username">Nom d'utilisateur</label>

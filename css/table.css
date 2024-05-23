@@ -1,0 +1,51 @@
+/* Style général pour les tableaux */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Style pour les cellules d'en-tête */
+  th {
+    background-color: #6e0b14;
+    color: goldenrod;
+    text-align: left;
+    padding: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  
+  /* Style pour les cellules de données */
+  td {
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  /* Style pour les lignes impaires */
+  tr:nth-child(odd) {
+    background-color: #f2f2f2;
+  }
+  
+  /* Style pour les lignes paires */
+  tr:nth-child(even) {
+    background-color: #e6e6e6;
+  }
+  
+  /* Style pour le survol des lignes */
+  tr:hover {
+    background-color: #e0e0e0;
+  }
+  
+  /* Style pour les liens dans les cellules */
+  td a {
+    color: #333;
+    text-decoration: none;
+  }
+  
+  td a:hover {
+    color: #666;
+    text-decoration: underline;
+  }
+  

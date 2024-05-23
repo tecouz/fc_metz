@@ -1,0 +1,43 @@
+.container {
+  display: flex;
+  justify-content: center;
+}
+
+.card {
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  max-width: 400px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card-body {
+  padding: 20px;
+}
+
+.login-info p {
+  margin: 5px 0;
+}
+
+.password {
+  font-family: 'Password', monospace;
+}
+
+.copy-buttons {
+  margin-top: 20px;
+}
+
+.copy-btn {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 8px 12px;
+  cursor: pointer;
+  margin-right: 10px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.copy-btn i {
+  margin-right: 5px;
+}

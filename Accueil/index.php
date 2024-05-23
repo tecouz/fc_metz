@@ -33,9 +33,9 @@ function getBackgroundColor($evaluation)
         case 'A':
             return 'green';
         case 'B':
-            return 'lightgreen';
+            return '#FAA40F';
         case 'C':
-            return 'orange';
+            return '#FB6107';
         case 'D':
             return 'red';
         default:
