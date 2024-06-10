@@ -1,15 +1,21 @@
 <?php
-require_once $_SERVER["DOCUMENT_ROOT"] . "/include/connect.php";
-require_once $_SERVER["DOCUMENT_ROOT"] . "/include/protect.php";
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
-// Récupérer l'ID du joueur à partir de l'URL ou du cookie
-$player_id = isset($_GET['player_id']) ? $_GET['player_id'] : (isset($_COOKIE['player_id']) ? $_COOKIE['player_id'] : null);
-
-// Stocker l'ID du joueur dans un cookie et rediriger vers la même page avec l'ID dans l'URL
-if ($player_id !== null && !isset($_GET['player_id'])) {
-    setcookie('player_id', $player_id, time() + (86400 * 30), "/"); // Expire dans 30 jours
-    header("Location: " . $_SERVER['PHP_SELF'] . "?player_id=" . $player_id);
-    exit();
+function getPlayerPosition($data)
+{
+    $position = '';
+    if (isset($data['positions'][0]['position']['name'])) {
+        $playerPosition = strtolower($data['positions'][0]['position']['name']);
+        if (strpos($playerPosition, 'attaquant') !== false) {
+            $position = 'attaquant';
+        } elseif (strpos($playerPosition, 'defenseur') !== false || strpos($playerPosition, 'back') !== false) {
+            $position = 'defenseur';
+        } elseif (strpos($playerPosition, 'milieu') !== false) {
+            $position = 'milieu';
+        }
+    }
+    return $position;
 }
 ?>
 
@@ -39,40 +45,144 @@ if ($player_id !== null && !isset($_GET['player_id'])) {
 
         <div class="container">
             <?php
-            // Vérifier si l'ID du joueur est présent
-            if ($player_id !== null) {
-                $stmt = $db->prepare("SELECT s.*, p.player_name 
-                                      FROM statistic s
-                                      JOIN player p ON s.player_id = p.player_id
-                                      WHERE s.player_id = ?");
-                $stmt->bindParam(1, $player_id, PDO::PARAM_INT);
-                $stmt->execute();
+            $curl = curl_init();
 
-                // Récupération des résultats
-                $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            curl_setopt_array(
+                $curl,
+                array(
+                    CURLOPT_URL => 'https://apirest.wyscout.com/v3/players/1017517/advancedstats?compId=198', // Remplacez 1017517 par l'ID du joueur souhaité
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_ENCODING => '',
+                    CURLOPT_MAXREDIRS => 10,
+                    CURLOPT_TIMEOUT => 0,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                    CURLOPT_CUSTOMREQUEST => 'GET',
+                    CURLOPT_HTTPHEADER => array(
+                        'Authorization: Basic cmM4ajZiai15ZnM1czAyZW4tcnBkamtyai1ndHRuZ2lodW8wOiEyOVJMUHZFK283aWhOOlRCKigpWiE3JUpzLm5NUg=='
+                    ),
+                )
+            );
 
-                // Boucle d'affichage des résultats
-                if (count($result) > 0) {
-                    foreach ($result as $row) {
-                        foreach ($row as $key => $value) {
-                            if ($key !== 'player_id' && $key !== 'statistic_id' && $key !== 'player_name' && $value !== null) {
-                                // Échappement HTML
-                                $key = htmlspecialchars($key);
-                                $value = htmlspecialchars($value);
+            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+            $response = curl_exec($curl);
 
+            if ($response === false) {
+                echo 'Erreur cURL : ' . curl_error($curl);
+            } else {
+                if (empty($response)) {
+                    echo 'Réponse vide';
+                } else {
+                    $data = json_decode($response, true);
+
+                    // Boucle d'affichage des résultats
+                    if (!empty($data)) {
+                        $attaquants = [
+                            'matches_played' => isset($data['total']['matches']) ? $data['total']['matches'] : '0',
+                            'starts' => isset($data['total']['matchesInStart']) ? $data['total']['matchesInStart'] : '0',
+                            'minutes_played' => isset($data['total']['minutesOnField']) ? $data['total']['minutesOnField'] : '0',
+                            'goals' => isset($data['total']['goals']) ? $data['total']['goals'] : '0',
+                            'goals_per_90' => isset($data['average']['goals']) ? $data['average']['goals'] : '0',
+                            'penalties' => isset($data['total']['penalties']) ? $data['total']['penalties'] : '0',
+                            'assists' => isset($data['total']['assists']) ? $data['total']['assists'] : '0',
+                            'assists_per_90' => isset($data['average']['assists']) ? $data['average']['assists'] : '0',
+                            'xg_shot_per_90' => isset($data['average']['xgShot']) ? $data['average']['xgShot'] : '0',
+                            'shots_per_90' => isset($data['average']['shots']) ? $data['average']['shots'] : '0',
+                            'shots_on_target_per_90' => isset($data['average']['shotsOnTarget']) ? $data['average']['shotsOnTarget'] : '0',
+                            'shots_on_target_percentage_per_90' => isset($data['percent']['shotsOnTarget']) ? $data['percent']['shotsOnTarget'] : '0',
+                            'dribbles_per_90' => isset($data['average']['dribbles']) ? $data['average']['dribbles'] : '0',
+                            'dribbles_success_percentage_per_90' => isset($data['percent']['successfulDribbles']) ? $data['percent']['successfulDribbles'] : '0',
+                            'offensive_duels_per_90' => isset($data['average']['offensiveDuels']) ? $data['average']['offensiveDuels'] : '0',
+                            'offensive_duels_won_percentage_per_90' => isset($data['percent']['offensiveDuelsWon']) ? $data['percent']['offensiveDuelsWon'] : '0',
+                            'aerial_duels_per_90' => isset($data['average']['aerialDuels']) ? $data['average']['aerialDuels'] : '0',
+                            'aerial_duels_won_percentage_per_90' => isset($data['percent']['aerialDuelsWon']) ? $data['percent']['aerialDuelsWon'] : '0'
+                        ];
+
+                        $defenseurs = [
+                            'matches_played' => isset($data['total']['matches']) ? $data['total']['matches'] : '0',
+                            'starts' => isset($data['total']['matchesInStart']) ? $data['total']['matchesInStart'] : '0',
+                            'minutes_played' => isset($data['total']['minutesOnField']) ? $data['total']['minutesOnField'] : '0',
+                            'goals' => isset($data['total']['goals']) ? $data['total']['goals'] : '0',
+                            'goals_per_90' => isset($data['average']['goals']) ? $data['average']['goals'] : '0',
+                            'assists' => isset($data['total']['assists']) ? $data['total']['assists'] : '0',
+                            'assists_per_90' => isset($data['average']['assists']) ? $data['average']['assists'] : '0',
+                            'interceptions_per_90' => isset($data['average']['interceptions']) ? $data['average']['interceptions'] : '0',
+                            'sliding_tackles_per_90' => isset($data['average']['slidingTackles']) ? $data['average']['slidingTackles'] : '0',
+                            'aerial_duels_per_90' => isset($data['average']['aerialDuels']) ? $data['average']['aerialDuels'] : '0',
+                            'aerial_duels_won_percentage_per_90' => isset($data['percent']['aerialDuelsWon']) ? $data['percent']['aerialDuelsWon'] : '0',
+                            'defensive_duels_per_90' => isset($data['average']['defensiveDuels']) ? $data['average']['defensiveDuels'] : '0',
+                            'defensive_duels_won_percentage_per_90' => isset($data['percent']['defensiveDuelsWon']) ? $data['percent']['defensiveDuelsWon'] : '0',
+                            'defensive_actions_per_90' => isset($data['average']['defensiveActions']) ? $data['average']['defensiveActions'] : '0',
+                            'long_passes_completed_per_90' => isset($data['average']['successfulLongPasses']) ? $data['average']['successfulLongPasses'] : '0',
+                            'passes_received_per_90' => isset($data['average']['receivedPass']) ? $data['average']['receivedPass'] : '0',
+                            'progressive_runs_per_90' => isset($data['average']['progressiveRun']) ? $data['average']['progressiveRun'] : '0',
+                            'dribbles_completed_per_90' => isset($data['average']['successfulDribbles']) ? $data['average']['successfulDribbles'] : '0',
+                            'second_assists_per_90' => isset($data['average']['secondAssists']) ? $data['average']['secondAssists'] : '0',
+                            'smart_passes_per_90' => isset($data['average']['smartPasses']) ? $data['average']['smartPasses'] : '0',
+                            'direct_passes_per_90' => isset($data['average']['directPasses']) ? $data['average']['directPasses'] : '0',
+                            'progressive_passes_per_90' => isset($data['average']['progressivePasses']) ? $data['average']['progressivePasses'] : '0',
+                            'passes_to_final_third_per_90' => isset($data['average']['passesToFinalThird']) ? $data['average']['passesToFinalThird'] : '0'
+                        ];
+
+                        $milieux = [
+                            'matches_played' => isset($data['total']['matches']) ? $data['total']['matches'] : '0',
+                            'starts' => isset($data['total']['matchesInStart']) ? $data['total']['matchesInStart'] : '0',
+                            'minutes_played' => isset($data['total']['minutesOnField']) ? $data['total']['minutesOnField'] : '0',
+                            'goals' => isset($data['total']['goals']) ? $data['total']['goals'] : '0',
+                            'goals_per_90' => isset($data['average']['goals']) ? $data['average']['goals'] : '0',
+                            'assists' => isset($data['total']['assists']) ? $data['total']['assists'] : '0',
+                            'assists_per_90' => isset($data['average']['assists']) ? $data['average']['assists'] : '0',
+                            'dribbles_attempted_per_90' => isset($data['average']['dribbles']) ? $data['average']['dribbles'] : '0',
+                            'dribbles_success_percentage_per_90' => isset($data['percent']['successfulDribbles']) ? $data['percent']['successfulDribbles'] : '0',
+                            'offensive_duels_per_90' => isset($data['average']['offensiveDuels']) ? $data['average']['offensiveDuels'] : '0',
+                            'offensive_duels_won_percentage_per_90' => isset($data['percent']['offensiveDuelsWon']) ? $data['percent']['offensiveDuelsWon'] : '0',
+                            'fouls_suffered_per_90' => isset($data['average']['foulsSuffered']) ? $data['average']['foulsSuffered'] : '0',
+                            'shots_on_target_per_90' => isset($data['average']['shotsOnTarget']) ? $data['average']['shotsOnTarget'] : '0',
+                            'passes_received_per_90' => isset($data['average']['receivedPass']) ? $data['average']['receivedPass'] : '0',
+                            'progressive_runs_per_90' => isset($data['average']['progressiveRun']) ? $data['average']['progressiveRun'] : '0',
+                            'second_assists_per_90' => isset($data['average']['secondAssists']) ? $data['average']['secondAssists'] : '0',
+                            'key_passes_per_90' => isset($data['average']['keyPasses']) ? $data['average']['keyPasses'] : '0',
+                            'smart_passes_per_90' => isset($data['average']['smartPasses']) ? $data['average']['smartPasses'] : '0',
+                            'direct_passes_per_90' => isset($data['average']['directPasses']) ? $data['average']['directPasses'] : '0',
+                            'progressive_passes_per_90' => isset($data['average']['progressivePasses']) ? $data['average']['progressivePasses'] : '0',
+                            'passes_to_final_third_per_90' => isset($data['average']['passesToFinalThird']) ? $data['average']['passesToFinalThird'] : '0'
+                        ];
+
+                        // Récupérer la position du joueur à partir des données de l'API
+                        $position = getPlayerPosition($data);
+
+                        echo '<h2>' . ucfirst($position) . 's</h2>';
+                        echo '<div class="container">';
+                        if ($position === 'attaquant') {
+                            foreach ($attaquants as $key => $value) {
                                 echo "<div class='carte'>";
-                                echo "<h3>" . ucwords(str_replace('_', ' ', $key)) . "</h3>";
-                                echo "<p>$value</p>";
+                                echo "<h3>" . str_replace('_', ' ', $key) . "</h3>";
+                                echo "<p>" . $value . "</p>";
+                                echo "</div>";
+                            }
+                        } elseif ($position === 'defenseur') {
+                            foreach ($defenseurs as $key => $value) {
+                                echo "<div class='carte'>";
+                                echo "<h3>" . str_replace('_', ' ', $key) . "</h3>";
+                                echo "<p>" . $value . "</p>";
+                                echo "</div>";
+                            }
+                        } elseif ($position === 'milieu') {
+                            foreach ($milieux as $key => $value) {
+                                echo "<div class='carte'>";
+                                echo "<h3>" . str_replace('_', ' ', $key) . "</h3>";
+                                echo "<p>" . $value . "</p>";
                                 echo "</div>";
                             }
                         }
+                        echo '</div>';
+                    } else {
+                        echo "Aucune statistique trouvée";
                     }
-                } else {
-                    echo "Aucune statistique trouvée";
                 }
-            } else {
-                echo "Aucun joueur sélectionné";
             }
+
+            curl_close($curl);
             ?>
         </div>
     </div>
