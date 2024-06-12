@@ -1,27 +1,18 @@
 <?php
-// Inclure le fichier de connexion à la base de données
 require_once $_SERVER["DOCUMENT_ROOT"] . "/include/connect.php";
-// Inclure le fichier de protection pour vérifier si l'utilisateur est connecté
 require_once $_SERVER["DOCUMENT_ROOT"] . "/include/protect.php";
 
 // Fonction pour convertir une date au format jour/mois/année ou année-mois-jour en format standard
 function convertDate($date)
 {
-    // Expressions régulières pour les formats de date acceptés
     $dayMonthYearFormat = '/^(\d{2})\/(\d{2})\/(\d{4})$/';
     $yearMonthDayFormat = '/^(\d{4})-(\d{2})-(\d{2})$/';
 
-    // Vérifier si la date correspond au format jour/mois/année
     if (preg_match($dayMonthYearFormat, $date, $matches)) {
-        // Retourner la date au format standard année-mois-jour
         return $matches[3] . '-' . $matches[2] . '-' . $matches[1];
-    }
-    // Vérifier si la date correspond au format année-mois-jour
-    elseif (preg_match($yearMonthDayFormat, $date, $matches)) {
-        // Retourner la date telle quelle (déjà au format standard)
+    } elseif (preg_match($yearMonthDayFormat, $date, $matches)) {
         return $matches[1] . '-' . $matches[2] . '-' . $matches[3];
     } else {
-        // Si le format de la date n'est pas valide, retourner null
         return null;
     }
 }
@@ -44,73 +35,84 @@ function getBackgroundColor($evaluation)
 }
 
 // Nombre de joueurs à afficher par page
-$playersPerPage = 20;
+$playersPerPage = 25;
 
 // Page actuelle, si le paramètre 'page' est présent dans l'URL, utiliser sa valeur, sinon utiliser 1
 $currentPage = isset($_GET['page']) ? $_GET['page'] : 1;
 
-// Construire la requête SQL dynamique pour compter le nombre total de joueurs
-$countSql = "SELECT COUNT(*) AS total FROM player";
-$conditions = array(); // Tableau pour stocker les conditions de filtrage
+// URL de base pour l'API Wyscout
+$baseUrl = 'https://apirest.wyscout.com/v3/competitions/198/players';
 
-// Si le paramètre 'name' est présent dans l'URL, ajouter une condition de filtrage sur le nom ou le prénom
-if (!empty($_GET['name'])) {
-    $name = $_GET['name'];
-    $conditions[] = "(player.player_name LIKE '%$name%' OR player.player_firstname LIKE '%$name%')";
+// Paramètres de tri
+$sortParams = array();
+
+if (!empty($_GET['competition'])) {
+    $sortParams['competitionName'] = urlencode($_GET['competition']);
 }
 
-// Si le paramètre 'position' est présent dans l'URL, ajouter une condition de filtrage sur le poste
-if (!empty($_GET['position'])) {
-    $position = $_GET['position'];
-    $conditions[] = "player.player_position = '$position'";
-}
-
-// Si le paramètre 'age' est présent dans l'URL, ajouter une condition de filtrage sur l'âge
 if (!empty($_GET['age'])) {
-    $age = $_GET['age'];
-    $conditions[] = "YEAR(CURDATE()) - YEAR(player.player_birthday) = $age";
+    $sortParams['age'] = urlencode($_GET['age']);
 }
 
-// Si le paramètre 'contract_expiration' est présent dans l'URL, ajouter une condition de filtrage sur la date d'expiration du contrat
+if (!empty($_GET['position'])) {
+    $sortParams['positionName'] = urlencode($_GET['position']);
+}
+
 if (!empty($_GET['contract_expiration'])) {
     $contract_expiration = convertDate($_GET['contract_expiration']);
     if ($contract_expiration !== null) {
-        $conditions[] = "player.player_date_expiration_contract = '$contract_expiration'";
+        $sortParams['contractExpirationDate'] = urlencode($contract_expiration);
     }
 }
 
-// Si le tableau $conditions n'est pas vide, ajouter les conditions de filtrage à la requête SQL
-if (!empty($conditions)) {
-    $countSql .= " WHERE " . implode(" AND ", $conditions);
+if (!empty($_GET['name'])) {
+    $sortParams['name'] = urlencode($_GET['name']);
 }
 
-// Préparer et exécuter la requête SQL pour compter le nombre total de joueurs
-$countStmt = $db->prepare($countSql);
-$countStmt->execute();
-$totalPlayers = $countStmt->fetchColumn(); // Récupérer le nombre total de joueurs
+// Construire l'URL complète avec les paramètres de tri
+$url = $baseUrl . '?' . http_build_query(array_merge(array('limit' => $playersPerPage, 'page' => $currentPage), $sortParams));
 
-// Calculer le nombre total de pages en divisant le nombre total de joueurs par le nombre de joueurs par page
-$totalPages = ceil($totalPlayers / $playersPerPage);
+// Initialiser cURL
+$curl = curl_init();
 
-// Construire la requête SQL dynamique pour récupérer les joueurs de la page actuelle
-$sql = "SELECT player.player_id, player.player_name, player.player_firstname, player.player_position, player.player_club,
-               YEAR(CURDATE()) - YEAR(player.player_birthday) AS player_age, player.player_evaluation
-        FROM player";
+curl_setopt_array(
+    $curl,
+    array(
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => '',
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 0,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => 'GET',
+        CURLOPT_HTTPHEADER => array(
+            'Authorization: Basic cmM4ajZiai15ZnM1czAyZW4tcnBkamtyai1ndHRuZ2lodW8wOiEyOVJMUHZFK283aWhOOlRCKigpWiE3JUpzLm5NUg=='
+        ),
+    )
+);
 
-// Si le tableau $conditions n'est pas vide, ajouter les conditions de filtrage à la requête SQL
-if (!empty($conditions)) {
-    $sql .= " WHERE " . implode(" AND ", $conditions);
+curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+$response = curl_exec($curl);
+
+if ($response === false) {
+    echo 'Erreur cURL : ' . curl_error($curl);
+} else {
+    if (empty($response)) {
+        echo 'Réponse vide';
+    } else {
+        $data = json_decode($response, true);
+        $players = $data['players'];
+
+        // Récupérer le nombre total de joueurs
+        $totalPlayers = isset($data['pagination']['totalCount']) ? $data['pagination']['totalCount'] : 0;
+
+        // Calculer le nombre total de pages
+        $totalPages = ceil($totalPlayers / $playersPerPage);
+    }
 }
 
-// Trier les résultats par nom de joueur
-$sql .= " ORDER BY player.player_name ASC";
-// Limiter les résultats à la page actuelle
-$sql .= " LIMIT " . (($currentPage - 1) * $playersPerPage) . ", $playersPerPage";
-
-// Préparer et exécuter la requête SQL pour récupérer les joueurs de la page actuelle
-$stmt = $db->prepare($sql);
-$stmt->execute();
-$result = $stmt->fetchAll(PDO::FETCH_ASSOC); // Récupérer les résultats sous forme de tableau associatif
+curl_close($curl);
 ?>
 
 <!DOCTYPE html>
@@ -139,22 +141,76 @@ $result = $stmt->fetchAll(PDO::FETCH_ASSOC); // Récupérer les résultats sous 
                 <label for="name">Nom ou Prénom :</label>
                 <input type="text" id="name" name="name"
                     value="<?php echo isset($_GET['name']) ? htmlspecialchars($_GET['name']) : ''; ?>">
+
+                <label for="competition">Compétition :</label>
+                <select id="competition" name="competition">
+                    <option value="">Toutes les compétitions</option>
+                    <?php
+                    // Récupérer les compétitions distinctes depuis l'API
+                    $competitionUrl = 'https://apirest.wyscout.com/v3/competitions';
+                    $competitionCurl = curl_init();
+                    curl_setopt_array(
+                        $competitionCurl,
+                        array(
+                            CURLOPT_URL => $competitionUrl,
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_ENCODING => '',
+                            CURLOPT_MAXREDIRS => 10,
+                            CURLOPT_TIMEOUT => 0,
+                            CURLOPT_FOLLOWLOCATION => true,
+                            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                            CURLOPT_CUSTOMREQUEST => 'GET',
+                            CURLOPT_HTTPHEADER => array(
+                                'Authorization: Basic cmM4ajZiai15ZnM1czAyZW4tcnBkamtyai1ndHRuZ2lodW8wOiEyOVJMUHZFK283aWhOOlRCKigpWiE3JUpzLm5NUg=='
+                            ),
+                        )
+                    );
+                    curl_setopt($competitionCurl, CURLOPT_SSL_VERIFYPEER, false);
+                    $competitionResponse = curl_exec($competitionCurl);
+                    curl_close($competitionCurl);
+
+                    $competitionData = json_decode($competitionResponse, true);
+                    foreach ($competitionData['competitions'] as $competition) {
+                        $selected = (isset($_GET['competition']) && $_GET['competition'] == $competition['name']) ? 'selected' : '';
+                        echo "<option value='" . $competition['name'] . "' $selected>" . $competition['name'] . "</option>";
+                    }
+                    ?>
+                </select>
                 <label for="position">Poste :</label>
                 <select id="position" name="position">
                     <option value="">Tous les postes</option>
                     <?php
-                    // Récupérer les postes distincts depuis la base de données
-                    $stmt = $db->prepare("SELECT DISTINCT player_position FROM player");
-                    $stmt->execute();
-                    $positions = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                    // Récupérer les postes distincts depuis l'API
+                    $positionUrl = 'https://apirest.wyscout.com/v3/positions';
+                    $positionCurl = curl_init();
+                    curl_setopt_array(
+                        $positionCurl,
+                        array(
+                            CURLOPT_URL => $positionUrl,
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_ENCODING => '',
+                            CURLOPT_MAXREDIRS => 10,
+                            CURLOPT_TIMEOUT => 0,
+                            CURLOPT_FOLLOWLOCATION => true,
+                            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                            CURLOPT_CUSTOMREQUEST => 'GET',
+                            CURLOPT_HTTPHEADER => array(
+                                'Authorization: Basic cmM4ajZiai15ZnM1czAyZW4tcnBkamtyai1ndHRuZ2lodW8wOiEyOVJMUHZFK283aWhOOlRCKigpWiE3JUpzLm5NUg=='
+                            ),
+                        )
+                    );
+                    curl_setopt($positionCurl, CURLOPT_SSL_VERIFYPEER, false);
+                    $positionResponse = curl_exec($positionCurl);
+                    curl_close($positionCurl);
 
-                    // Générer les options pour la liste déroulante des postes
-                    foreach ($positions as $position) {
-                        $selected = (isset($_GET['position']) && $_GET['position'] == $position) ? 'selected' : '';
-                        echo "<option value='$position' $selected>$position</option>";
+                    $positionData = json_decode($positionResponse, true);
+                    foreach ($positionData['positions'] as $position) {
+                        $selected = (isset($_GET['position']) && $_GET['position'] == $position['name']) ? 'selected' : '';
+                        echo "<option value='" . $position['name'] . "' $selected>" . $position['name'] . "</option>";
                     }
                     ?>
                 </select>
+
                 <label for="age">Âge :</label>
                 <select id="age" name="age">
                     <option value="">Tous les âges</option>
@@ -177,20 +233,84 @@ $result = $stmt->fetchAll(PDO::FETCH_ASSOC); // Récupérer les résultats sous 
         <div class="listPlayer">
             <?php
             // Afficher les résultats dans un tableau HTML
-            if (count($result) > 0) {
+            if (count($players) > 0) {
                 echo "<table>";
-                echo "<tr><th>Nom</th><th>Prénom</th><th>Poste</th><th>Club</th><th>Âge</th><th>Évaluation</th></tr>";
+                echo "<tr><th>Nom</th><th>Prénom</th><th>Poste</th><th>Club</th><th>Âge</th><th>Évaluation</th><th>Nationalité</th><th>Pied fort</th><th>Taille</th><th>Poids</th></tr>";
                 $rowCount = 0;
-                foreach ($result as $row) {
+                foreach ($players as $player) {
                     $rowClass = ($rowCount % 2 == 0) ? 'row-even' : 'row-odd'; // Classe CSS pour alterner les couleurs de ligne
                     echo "<tr class='$rowClass'>";
-                    // Lien vers la page du joueur en cliquant sur les cellules
-                    echo "<td onclick=\"window.location.href='../Player/index.php?player_id=" . $row['player_id'] . "'\">" . htmlspecialchars($row['player_name']) . "</td>";
-                    echo "<td onclick=\"window.location.href='../Player/index.php?player_id=" . $row['player_id'] . "'\">" . htmlspecialchars($row['player_firstname']) . "</td>";
-                    echo "<td onclick=\"window.location.href='../Player/index.php?player_id=" . $row['player_id'] . "'\">" . htmlspecialchars($row['player_position']) . "</td>";
-                    echo "<td onclick=\"window.location.href='../Player/index.php?player_id=" . $row['player_id'] . "'\">" . htmlspecialchars($row['player_club']) . "</td>";
-                    echo "<td onclick=\"window.location.href='../Player/index.php?player_id=" . $row['player_id'] . "'\">" . htmlspecialchars($row['player_age']) . "</td>";
-                    echo "<td onclick=\"window.location.href='../Player/index.php?player_id=" . $row['player_id'] . "'\" style=\"background-color: " . getBackgroundColor($row['player_evaluation']) . ";\">" . htmlspecialchars($row['player_evaluation']) . "</td>"; // Affichage de la valeur de player_evaluation avec couleur de fond
+
+                    // Nom (shortName)
+                    $playerShortName = array_key_exists('shortName', $player) ? htmlspecialchars($player['shortName']) : '';
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "'>" . $playerShortName . "</a></td>";
+
+                    // Prénom
+                    $playerFirstName = array_key_exists('firstName', $player) ? htmlspecialchars($player['firstName']) : '';
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "'>" . $playerFirstName . "</a></td>";
+
+                    // Poste
+                    $playerPosition = array_key_exists('role', $player) && is_array($player['role']) && array_key_exists('name', $player['role']) ? htmlspecialchars($player['role']['name']) : '';
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "'>" . $playerPosition . "</a></td>";
+
+                    // Club (obtenu via l'URL de Teams)
+                    $teamUrl = 'https://apirest.wyscout.com/v3/teams/' . $player['currentTeamId'];
+                    $teamCurl = curl_init();
+                    curl_setopt_array(
+                        $teamCurl,
+                        array(
+                            CURLOPT_URL => $teamUrl,
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_ENCODING => '',
+                            CURLOPT_MAXREDIRS => 10,
+                            CURLOPT_TIMEOUT => 0,
+                            CURLOPT_FOLLOWLOCATION => true,
+                            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                            CURLOPT_CUSTOMREQUEST => 'GET',
+                            CURLOPT_HTTPHEADER => array(
+                                'Authorization: Basic cmM4ajZiai15ZnM1czAyZW4tcnBkamtyai1ndHRuZ2lodW8wOiEyOVJMUHZFK283aWhOOlRCKigpWiE3JUpzLm5NUg=='
+                            ),
+                        )
+                    );
+                    curl_setopt($teamCurl, CURLOPT_SSL_VERIFYPEER, false);
+                    $teamResponse = curl_exec($teamCurl);
+                    curl_close($teamCurl);
+
+                    $teamData = json_decode($teamResponse, true);
+                    $playerClub = array_key_exists('name', $teamData) ? htmlspecialchars($teamData['name']) : '';
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "'>" . $playerClub . "</a></td>";
+
+                    // Âge
+                    $playerBirthDate = array_key_exists('birthDate', $player) ? $player['birthDate'] : '';
+                    if (!empty($playerBirthDate)) {
+                        $birthDate = new DateTime($playerBirthDate);
+                        $now = new DateTime();
+                        $age = $now->diff($birthDate)->y;
+                        echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "'>" . $age . "</a></td>";
+                    } else {
+                        echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "'>-</a></td>"; // Afficher un tiret si la date de naissance n'est pas disponible
+                    }
+
+                    // Évaluation
+                    $playerEvaluation = array_key_exists('evaluation', $player) ? htmlspecialchars($player['evaluation']) : '';
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "' style='background-color: " . getBackgroundColor($playerEvaluation) . ";'>" . $playerEvaluation . "</a></td>";
+
+                    // Nationalité
+                    $playerNationality = array_key_exists('passportArea', $player) && is_array($player['passportArea']) && array_key_exists('name', $player['passportArea']) ? htmlspecialchars($player['passportArea']['name']) : '';
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "'>" . $playerNationality . "</a></td>";
+
+                    // Pied fort
+                    $playerFoot = array_key_exists('foot', $player) && isset($player['foot']) ? htmlspecialchars($player['foot']) : '';
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "'>" . $playerFoot . "</a></td>";
+
+                    // Taille
+                    $playerHeight = array_key_exists('height', $player) ? htmlspecialchars($player['height']) : '';
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "'>" . $playerHeight . "</a></td>";
+
+                    // Poids
+                    $playerWeight = array_key_exists('weight', $player) ? htmlspecialchars($player['weight']) : '';
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "'>" . $playerWeight . "</a></td>";
+
                     echo "</tr>";
                     $rowCount++;
                 }

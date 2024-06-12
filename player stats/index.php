@@ -7,11 +7,11 @@ function getPlayerPosition($data)
     $position = '';
     if (isset($data['positions'][0]['position']['name'])) {
         $playerPosition = strtolower($data['positions'][0]['position']['name']);
-        if (strpos($playerPosition, 'attaquant') !== false) {
+        if (strpos($playerPosition, 'forward') !== false) {
             $position = 'attaquant';
-        } elseif (strpos($playerPosition, 'defenseur') !== false || strpos($playerPosition, 'back') !== false) {
+        } elseif (strpos($playerPosition, 'back') !== false) {
             $position = 'defenseur';
-        } elseif (strpos($playerPosition, 'milieu') !== false) {
+        } elseif (strpos($playerPosition, 'midfielder') !== false) {
             $position = 'milieu';
         }
     }
