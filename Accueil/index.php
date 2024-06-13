@@ -37,6 +37,27 @@ $playersPerPage = 20;
 // Page actuelle, si le paramètre 'page' est présent dans l'URL, utiliser sa valeur, sinon utiliser 1
 $currentPage = isset($_GET['page']) ? $_GET['page'] : 1;
 
+// Liste fixe des compétitions avec leurs identifiants
+$competitions = [
+    'Allemagne (1ère division)' => '426',
+    'Autriche' => '168',
+    'Belgique (1ère division)' => '198',
+    'Danemark' => '335',
+    'Espagne (1ère division)' => '795',
+    'Espagne (2ème division)' => '797',
+    'Hongrie' => '465',
+    'Italie' => '524',
+    'Norvège' => '669',
+    'Pologne' => '692',
+    'Portugal (1ère division)' => '707',
+    'Rep. Tchèque' => '323',
+    'Slovaquie' => '775',
+    'Slovénie' => '776',
+    'Suède' => '808',
+    'Suisse' => '830',
+    'Turquie (1ère division)' => '852'
+];
+
 // URL de base pour l'API Wyscout
 $baseUrl = '';
 
@@ -45,18 +66,13 @@ $sortParams = array();
 
 // Compétition
 if (!empty($_GET['competition'])) {
-    $competitionId = getCompetitionId($_GET['competition']);
-    if ($competitionId !== null) {
-        $baseUrl = "https://apirest.wyscout.com/v3/competitions/$competitionId/players";
-    } else {
-        $players = array(); // Aucun joueur si la compétition n'est pas valide
-    }
+    $competitionId = $_GET['competition']; // Utilisez l'ID directement depuis le paramètre GET
+    $baseUrl = "https://apirest.wyscout.com/v3/competitions/$competitionId/players";
 }
 
 // Âge
 if (!empty($_GET['age'])) {
     $sortParams['age'] = urlencode($_GET['age']);
-    $sortParams['ageMax'] = urlencode($_GET['age']);
 }
 
 // Poste
@@ -78,19 +94,6 @@ if (!empty($_GET['contract_expiration'])) {
 // Nom ou prénom
 if (!empty($_GET['name'])) {
     $sortParams['name'] = urlencode($_GET['name']);
-}
-
-// Fonction pour récupérer l'ID de la compétition à partir de son nom
-function getCompetitionId($competitionName)
-{
-    global $db;
-
-    $stmt = $db->prepare("SELECT competition_id FROM competitions WHERE competition_name = ?");
-    $stmt->bindParam(1, $competitionName);
-    $stmt->execute();
-
-    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-    return isset($result['competition_id']) ? $result['competition_id'] : null;
 }
 
 // Fonction pour récupérer le code de rôle à partir du nom du poste
@@ -176,6 +179,25 @@ $filteredPlayers = array_filter($players, function ($player) {
         );
     }
 
+    if (!empty($_GET['age'])) {
+        $age = $_GET['age'];
+        $playerBirthDate = $player['birthDate'];
+        if ($playerBirthDate) {
+            $birthDate = new DateTime($playerBirthDate);
+            $now = new DateTime();
+            $playerAge = $now->diff($birthDate)->y;
+            $matchesFilters = $matchesFilters && ($playerAge == $age);
+        }
+    }
+
+    if (!empty($_GET['contract_expiration'])) {
+        $contractExpiration = $_GET['contract_expiration'];
+        $playerContractExpirationDate = isset($player['contractExpirationDate']) ? $player['contractExpirationDate'] : '';
+        if ($playerContractExpirationDate) {
+            $matchesFilters = $matchesFilters && ($playerContractExpirationDate <= $contractExpiration);
+        }
+    }
+
     return $matchesFilters;
 });
 
@@ -193,8 +215,8 @@ $totalPages = ceil($totalPlayersAfterFiltering / $playersPerPage);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Accueil</title>
-    <link rel="stylesheet" href="..\css\style.css">
-    <link rel="stylesheet" href="..\css\accueil.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/accueil.css">
 </head>
 
 <body>
@@ -209,83 +231,74 @@ $totalPages = ceil($totalPlayersAfterFiltering / $playersPerPage);
         <div class="searchPlayer">
             <!-- Formulaire de recherche avec les filtres -->
             <form method="get" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
-                <label for="name">Nom ou Prénom :</label>
-                <input type="text" id="name" name="name"
-                    value="<?php echo isset($_GET['name']) ? htmlspecialchars($_GET['name']) : ''; ?>">
-
                 <label for="competition">Compétition :</label>
                 <select id="competition" name="competition">
                     <option value="">Toutes les compétitions</option>
                     <?php
-                    // Récupérer les compétitions distinctes depuis l'API
-                    $competitionUrl = 'https://apirest.wyscout.com/v3/competitions';
-                    $competitionCurl = curl_init();
-                    curl_setopt_array(
-                        $competitionCurl,
-                        array(
-                            CURLOPT_URL => $competitionUrl,
-                            CURLOPT_RETURNTRANSFER => true,
-                            CURLOPT_ENCODING => '',
-                            CURLOPT_MAXREDIRS => 10,
-                            CURLOPT_TIMEOUT => 0,
-                            CURLOPT_FOLLOWLOCATION => true,
-                            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                            CURLOPT_CUSTOMREQUEST => 'GET',
-                            CURLOPT_HTTPHEADER => array(
-                                'Authorization: Basic cmM4ajZiai15ZnM1czAyZW4tcnBkamtyai1ndHRuZ2lodW8wOiEyOVJMUHZFK283aWhOOlRCKigpWiE3JUpzLm5NUg=='
-                            ),
-                        )
-                    );
-                    curl_setopt($competitionCurl, CURLOPT_SSL_VERIFYPEER, false);
-                    $competitionResponse = curl_exec($competitionCurl);
-                    curl_close($competitionCurl);
-
-                    $competitionData = json_decode($competitionResponse, true);
-                    foreach ($competitionData['competitions'] as $competition) {
-                        $selected = (isset($_GET['competition']) && $_GET['competition'] == $competition['name']) ? 'selected' : '';
-                        echo "<option value='" . $competition['wyId'] . "' $selected>" . $competition['name'] . "</option>";
+                    // Boucle sur les compétitions récupérées depuis l'API
+                    foreach ($competitions as $competitionName => $competitionId) {
+                        $selected = isset($_GET['competition']) && $_GET['competition'] == $competitionId ? 'selected' : '';
+                        echo "<option value='$competitionId' $selected>$competitionName</option>";
                     }
                     ?>
                 </select>
-                <label for="position">Poste :</label>
-                <select id="position" name="position">
-                    <option value="">Tous les postes</option>
-                    <option value="attaquant"
-                        <?php echo (isset($_GET['position']) && $_GET['position'] == 'attaquant') ? 'selected' : ''; ?>>
-                        Attaquant</option>
-                    <option value="milieu"
-                        <?php echo (isset($_GET['position']) && $_GET['position'] == 'milieu') ? 'selected' : ''; ?>>
-                        Milieu</option>
-                    <option value="defenseur"
-                        <?php echo (isset($_GET['position']) && $_GET['position'] == 'defenseur') ? 'selected' : ''; ?>>
-                        Défenseur</option>
-                    <option value="gardien"
-                        <?php echo (isset($_GET['position']) && $_GET['position'] == 'gardien') ? 'selected' : ''; ?>>
-                        Gardien</option>
-                </select>
 
-                <label for="age">Âge :</label>
-                <select id="age" name="age">
-                    <option value="">Tous les âges</option>
-                    <?php
-                    // Générer les options pour la liste déroulante des âges
-                    for ($age = 16; $age <= 40; $age++) {
-                        $selected = (isset($_GET['age']) && $_GET['age'] == $age) ? 'selected' : '';
-                        echo "<option value='$age' $selected>$age</option>";
-                    }
-                    ?>
-                </select>
-                <label for="contract_expiration">Date d'expiration du contrat (aaaa-mm-jj) :</label>
-                <input type="text" id="contract_expiration" name="contract_expiration" placeholder="aaaa-mm-jj"
-                    value="<?php echo isset($_GET['contract_expiration']) ? htmlspecialchars($_GET['contract_expiration']) : ''; ?>">
+                <!-- Champs de tri avec la classe 'sorting-field' pour contrôler leur visibilité -->
+                <div class="sorting-field" style="display: none;">
+                    <label for="name">Nom ou Prénom :</label>
+                    <input type="text" id="name" name="name"
+                        value="<?php echo isset($_GET['name']) ? htmlspecialchars($_GET['name']) : ''; ?>">
+                </div>
+
+                <div class="sorting-field" style="display: none;">
+                    <label for="position">Poste :</label>
+                    <select id="position" name="position">
+                        <option value="">Tous les postes</option>
+                        <option value="attaquant"
+                            <?php echo isset($_GET['position']) && $_GET['position'] == 'attaquant' ? 'selected' : ''; ?>>
+                            Attaquant</option>
+                        <option value="milieu"
+                            <?php echo isset($_GET['position']) && $_GET['position'] == 'milieu' ? 'selected' : ''; ?>>
+                            Milieu</option>
+                        <option value="defenseur"
+                            <?php echo isset($_GET['position']) && $_GET['position'] == 'defenseur' ? 'selected' : ''; ?>>
+                            Défenseur</option>
+                        <option value="gardien"
+                            <?php echo isset($_GET['position']) && $_GET['position'] == 'gardien' ? 'selected' : ''; ?>>
+                            Gardien</option>
+                    </select>
+                </div>
+
+                <div class="sorting-field" style="display: none;">
+                    <label for="age">Âge :</label>
+                    <select id="age" name="age">
+                        <option value="">Tous les âges</option>
+                        <?php
+                        // Générer les options pour la liste déroulante des âges
+                        for ($age = 16; $age <= 40; $age++) {
+                            $selected = isset($_GET['age']) && $_GET['age'] == $age ? 'selected' : '';
+                            echo "<option value='$age' $selected>$age</option>";
+                        }
+                        ?>
+                    </select>
+                </div>
+
+                <div class="sorting-field" style="display: none;">
+                    <label for="contract_expiration">Date d'expiration du contrat (jj/mm/aaaa ou aaaa-mm-jj) :</label>
+                    <input type="text" id="contract_expiration" name="contract_expiration"
+                        placeholder="jj/mm/aaaa ou aaaa-mm-jj"
+                        value="<?php echo isset($_GET['contract_expiration']) ? htmlspecialchars($_GET['contract_expiration']) : ''; ?>">
+                </div>
+
                 <input type="submit" value="Rechercher">
             </form>
+
         </div>
 
         <div class="listPlayer">
             <?php
             // Afficher les résultats dans un tableau HTML
-            if (count($players) > 0) {
+            if (count($filteredPlayers) > 0) {
                 echo "<table>";
                 echo "<tr><th>Nom</th><th>Prénom</th><th>Poste</th><th>Club</th><th>Âge</th><th>Évaluation</th><th>Nationalité</th><th>Pied fort</th><th>Taille</th><th>Poids</th></tr>";
                 $rowCount = 0;
@@ -370,19 +383,10 @@ $totalPages = ceil($totalPlayersAfterFiltering / $playersPerPage);
 
                 // Afficher les liens de pagination
                 echo '<div class="pagination">';
-
-                // Bouton "Page précédente"
-                if ($currentPage > 1) {
-                    $prevPage = $currentPage - 1;
-                    $prevUrl = $_SERVER['PHP_SELF'] . '?' . http_build_query(array_merge($_GET, array('page' => $prevPage)));
-                    echo '<a href="' . $prevUrl . '" class="prev-page">Page précédente</a>';
-                }
-
-                // Bouton "Page suivante"
-                if ($currentPage < $totalPages) {
-                    $nextPage = $currentPage + 1;
-                    $nextUrl = $_SERVER['PHP_SELF'] . '?' . http_build_query(array_merge($_GET, array('page' => $nextPage)));
-                    echo '<a href="' . $nextUrl . '" class="next-page">Page suivante</a>';
+                $queryString = http_build_query(array_merge($_GET, array('page' => null))); // Construire la chaîne de requête sans le paramètre 'page'
+                for ($page = 1; $page <= $totalPages; $page++) {
+                    $pageQueryString = $queryString . ($queryString ? '&' : '') . 'page=' . $page; // Ajouter le paramètre 'page' à la chaîne de requête
+                    echo '<a href="?' . $pageQueryString . '" ' . ($page == $currentPage ? 'class="active"' : '') . '>' . $page . '</a>'; // Lien de pagination avec classe CSS active pour la page actuelle
                 }
                 echo '</div>';
             } else {
@@ -391,6 +395,8 @@ $totalPages = ceil($totalPlayersAfterFiltering / $playersPerPage);
             ?>
         </div>
     </div>
+    <script src="../js/filter.js"></script>
+
 </body>
 
 </html>
