@@ -2,16 +2,13 @@
 require_once $_SERVER["DOCUMENT_ROOT"] . "/include/connect.php";
 require_once $_SERVER["DOCUMENT_ROOT"] . "/include/protect.php";
 
-// Fonction pour convertir une date au format jour/mois/année ou année-mois-jour en format standard
+// Fonction pour convertir une date au format année-mois-jour en format standard
 function convertDate($date)
 {
-    $dayMonthYearFormat = '/^(\d{2})\/(\d{2})\/(\d{4})$/';
     $yearMonthDayFormat = '/^(\d{4})-(\d{2})-(\d{2})$/';
 
-    if (preg_match($dayMonthYearFormat, $date, $matches)) {
-        return $matches[3] . '-' . $matches[2] . '-' . $matches[1];
-    } elseif (preg_match($yearMonthDayFormat, $date, $matches)) {
-        return $matches[1] . '-' . $matches[2] . '-' . $matches[3];
+    if (preg_match($yearMonthDayFormat, $date, $matches)) {
+        return $date;
     } else {
         return null;
     }
@@ -35,29 +32,42 @@ function getBackgroundColor($evaluation)
 }
 
 // Nombre de joueurs à afficher par page
-$playersPerPage = 25;
+$playersPerPage = 20;
 
 // Page actuelle, si le paramètre 'page' est présent dans l'URL, utiliser sa valeur, sinon utiliser 1
 $currentPage = isset($_GET['page']) ? $_GET['page'] : 1;
 
 // URL de base pour l'API Wyscout
-$baseUrl = 'https://apirest.wyscout.com/v3/competitions/198/players';
+$baseUrl = '';
 
 // Paramètres de tri
 $sortParams = array();
 
+// Compétition
 if (!empty($_GET['competition'])) {
-    $sortParams['competitionName'] = urlencode($_GET['competition']);
+    $competitionId = getCompetitionId($_GET['competition']);
+    if ($competitionId !== null) {
+        $baseUrl = "https://apirest.wyscout.com/v3/competitions/$competitionId/players";
+    } else {
+        $players = array(); // Aucun joueur si la compétition n'est pas valide
+    }
 }
 
+// Âge
 if (!empty($_GET['age'])) {
     $sortParams['age'] = urlencode($_GET['age']);
+    $sortParams['ageMax'] = urlencode($_GET['age']);
 }
 
+// Poste
 if (!empty($_GET['position'])) {
-    $sortParams['positionName'] = urlencode($_GET['position']);
+    $roleCode = getRoleCode($_GET['position']);
+    if ($roleCode !== null) {
+        $sortParams['roleCode'] = urlencode($roleCode);
+    }
 }
 
+// Date d'expiration du contrat
 if (!empty($_GET['contract_expiration'])) {
     $contract_expiration = convertDate($_GET['contract_expiration']);
     if ($contract_expiration !== null) {
@@ -65,54 +75,115 @@ if (!empty($_GET['contract_expiration'])) {
     }
 }
 
+// Nom ou prénom
 if (!empty($_GET['name'])) {
     $sortParams['name'] = urlencode($_GET['name']);
 }
 
-// Construire l'URL complète avec les paramètres de tri
-$url = $baseUrl . '?' . http_build_query(array_merge(array('limit' => $playersPerPage, 'page' => $currentPage), $sortParams));
+// Fonction pour récupérer l'ID de la compétition à partir de son nom
+function getCompetitionId($competitionName)
+{
+    global $db;
 
-// Initialiser cURL
-$curl = curl_init();
+    $stmt = $db->prepare("SELECT competition_id FROM competitions WHERE competition_name = ?");
+    $stmt->bindParam(1, $competitionName);
+    $stmt->execute();
 
-curl_setopt_array(
-    $curl,
-    array(
-        CURLOPT_URL => $url,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_ENCODING => '',
-        CURLOPT_MAXREDIRS => 10,
-        CURLOPT_TIMEOUT => 0,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-        CURLOPT_CUSTOMREQUEST => 'GET',
-        CURLOPT_HTTPHEADER => array(
-            'Authorization: Basic cmM4ajZiai15ZnM1czAyZW4tcnBkamtyai1ndHRuZ2lodW8wOiEyOVJMUHZFK283aWhOOlRCKigpWiE3JUpzLm5NUg=='
-        ),
-    )
-);
-
-curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-$response = curl_exec($curl);
-
-if ($response === false) {
-    echo 'Erreur cURL : ' . curl_error($curl);
-} else {
-    if (empty($response)) {
-        echo 'Réponse vide';
-    } else {
-        $data = json_decode($response, true);
-        $players = $data['players'];
-
-        // Récupérer le nombre total de joueurs
-        $totalPlayers = isset($data['pagination']['totalCount']) ? $data['pagination']['totalCount'] : 0;
-
-        // Calculer le nombre total de pages
-        $totalPages = ceil($totalPlayers / $playersPerPage);
-    }
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    return isset($result['competition_id']) ? $result['competition_id'] : null;
 }
 
-curl_close($curl);
+// Fonction pour récupérer le code de rôle à partir du nom du poste
+function getRoleCode($positionName)
+{
+    $roleMapping = array(
+        'attaquant' => 'FW',
+        'milieu' => 'MD',
+        'defenseur' => 'DF',
+        'gardien' => 'GK'
+    );
+
+    return isset($roleMapping[strtolower($positionName)]) ? $roleMapping[strtolower($positionName)] : null;
+}
+
+// Fonction pour récupérer les données paginées de l'API WyScout
+function getPaginatedData($baseUrl, $params = [])
+{
+    $nextPattern = '/(?<=<)([\S]*)(?=>; rel="next")/i';
+    $pagesRemaining = true;
+    $data = [];
+
+    $url = $baseUrl . '?' . http_build_query($params);
+
+    while ($pagesRemaining) {
+        $curl = curl_init();
+        curl_setopt_array($curl, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Basic cmM4ajZiai15ZnM1czAyZW4tcnBkamtyai1ndHRuZ2lodW8wOiEyOVJMUHZFK283aWhOOlRCKigpWiE3JUpzLm5NUg=='
+            ],
+        ]);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+        $response = curl_exec($curl);
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $linkHeader = curl_getinfo($curl, CURLINFO_REDIRECT_URL);
+        curl_close($curl);
+
+        if ($httpCode >= 200 && $httpCode < 300) {
+            $data = array_merge($data, json_decode($response, true)['players']);
+            $pagesRemaining = preg_match($nextPattern, $linkHeader, $matches);
+            if ($pagesRemaining) {
+                $url = $matches[0];
+            }
+        } else {
+            // Gérer les erreurs de requête ici
+            break;
+        }
+    }
+
+    return $data;
+}
+
+// Récupérer les données paginées de l'API WyScout
+$params = array_merge(['limit' => $playersPerPage, 'page' => $currentPage], $sortParams);
+$players = getPaginatedData($baseUrl, $params);
+
+// Filtrer les joueurs en fonction des critères de recherche
+$filteredPlayers = array_filter($players, function ($player) {
+    $matchesFilters = true;
+
+    if (!empty($_GET['name'])) {
+        $name = $_GET['name'];
+        $matchesFilters = $matchesFilters && (
+            stripos($player['shortName'], $name) !== false ||
+            stripos($player['firstName'], $name) !== false
+        );
+    }
+
+    if (!empty($_GET['position'])) {
+        $position = $_GET['position'];
+        $roleCode = getRoleCode($position);
+        $matchesFilters = $matchesFilters && (
+            isset($player['role']['code2']) &&
+            $player['role']['code2'] === $roleCode
+        );
+    }
+
+    return $matchesFilters;
+});
+
+// Calculer le nombre total de joueurs après le filtrage
+$totalPlayersAfterFiltering = count($filteredPlayers);
+
+// Calculer le nombre total de pages
+$totalPages = ceil($totalPlayersAfterFiltering / $playersPerPage);
 ?>
 
 <!DOCTYPE html>
@@ -172,43 +243,25 @@ curl_close($curl);
                     $competitionData = json_decode($competitionResponse, true);
                     foreach ($competitionData['competitions'] as $competition) {
                         $selected = (isset($_GET['competition']) && $_GET['competition'] == $competition['name']) ? 'selected' : '';
-                        echo "<option value='" . $competition['name'] . "' $selected>" . $competition['name'] . "</option>";
+                        echo "<option value='" . $competition['wyId'] . "' $selected>" . $competition['name'] . "</option>";
                     }
                     ?>
                 </select>
                 <label for="position">Poste :</label>
                 <select id="position" name="position">
                     <option value="">Tous les postes</option>
-                    <?php
-                    // Récupérer les postes distincts depuis l'API
-                    $positionUrl = 'https://apirest.wyscout.com/v3/positions';
-                    $positionCurl = curl_init();
-                    curl_setopt_array(
-                        $positionCurl,
-                        array(
-                            CURLOPT_URL => $positionUrl,
-                            CURLOPT_RETURNTRANSFER => true,
-                            CURLOPT_ENCODING => '',
-                            CURLOPT_MAXREDIRS => 10,
-                            CURLOPT_TIMEOUT => 0,
-                            CURLOPT_FOLLOWLOCATION => true,
-                            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                            CURLOPT_CUSTOMREQUEST => 'GET',
-                            CURLOPT_HTTPHEADER => array(
-                                'Authorization: Basic cmM4ajZiai15ZnM1czAyZW4tcnBkamtyai1ndHRuZ2lodW8wOiEyOVJMUHZFK283aWhOOlRCKigpWiE3JUpzLm5NUg=='
-                            ),
-                        )
-                    );
-                    curl_setopt($positionCurl, CURLOPT_SSL_VERIFYPEER, false);
-                    $positionResponse = curl_exec($positionCurl);
-                    curl_close($positionCurl);
-
-                    $positionData = json_decode($positionResponse, true);
-                    foreach ($positionData['positions'] as $position) {
-                        $selected = (isset($_GET['position']) && $_GET['position'] == $position['name']) ? 'selected' : '';
-                        echo "<option value='" . $position['name'] . "' $selected>" . $position['name'] . "</option>";
-                    }
-                    ?>
+                    <option value="attaquant"
+                        <?php echo (isset($_GET['position']) && $_GET['position'] == 'attaquant') ? 'selected' : ''; ?>>
+                        Attaquant</option>
+                    <option value="milieu"
+                        <?php echo (isset($_GET['position']) && $_GET['position'] == 'milieu') ? 'selected' : ''; ?>>
+                        Milieu</option>
+                    <option value="defenseur"
+                        <?php echo (isset($_GET['position']) && $_GET['position'] == 'defenseur') ? 'selected' : ''; ?>>
+                        Défenseur</option>
+                    <option value="gardien"
+                        <?php echo (isset($_GET['position']) && $_GET['position'] == 'gardien') ? 'selected' : ''; ?>>
+                        Gardien</option>
                 </select>
 
                 <label for="age">Âge :</label>
@@ -222,9 +275,8 @@ curl_close($curl);
                     }
                     ?>
                 </select>
-                <label for="contract_expiration">Date d'expiration du contrat (jj/mm/aaaa ou aaaa-mm-jj) :</label>
-                <input type="text" id="contract_expiration" name="contract_expiration"
-                    placeholder="jj/mm/aaaa ou aaaa-mm-jj"
+                <label for="contract_expiration">Date d'expiration du contrat (aaaa-mm-jj) :</label>
+                <input type="text" id="contract_expiration" name="contract_expiration" placeholder="aaaa-mm-jj"
                     value="<?php echo isset($_GET['contract_expiration']) ? htmlspecialchars($_GET['contract_expiration']) : ''; ?>">
                 <input type="submit" value="Rechercher">
             </form>
@@ -237,7 +289,7 @@ curl_close($curl);
                 echo "<table>";
                 echo "<tr><th>Nom</th><th>Prénom</th><th>Poste</th><th>Club</th><th>Âge</th><th>Évaluation</th><th>Nationalité</th><th>Pied fort</th><th>Taille</th><th>Poids</th></tr>";
                 $rowCount = 0;
-                foreach ($players as $player) {
+                foreach ($filteredPlayers as $player) {
                     $rowClass = ($rowCount % 2 == 0) ? 'row-even' : 'row-odd'; // Classe CSS pour alterner les couleurs de ligne
                     echo "<tr class='$rowClass'>";
 
@@ -318,10 +370,19 @@ curl_close($curl);
 
                 // Afficher les liens de pagination
                 echo '<div class="pagination">';
-                $queryString = http_build_query(array_merge($_GET, array('page' => null))); // Construire la chaîne de requête sans le paramètre 'page'
-                for ($page = 1; $page <= $totalPages; $page++) {
-                    $pageQueryString = $queryString . ($queryString ? '&' : '') . 'page=' . $page; // Ajouter le paramètre 'page' à la chaîne de requête
-                    echo '<a href="?' . $pageQueryString . '" ' . ($page == $currentPage ? 'class="active"' : '') . '>' . $page . '</a>'; // Lien de pagination avec classe CSS active pour la page actuelle
+
+                // Bouton "Page précédente"
+                if ($currentPage > 1) {
+                    $prevPage = $currentPage - 1;
+                    $prevUrl = $_SERVER['PHP_SELF'] . '?' . http_build_query(array_merge($_GET, array('page' => $prevPage)));
+                    echo '<a href="' . $prevUrl . '" class="prev-page">Page précédente</a>';
+                }
+
+                // Bouton "Page suivante"
+                if ($currentPage < $totalPages) {
+                    $nextPage = $currentPage + 1;
+                    $nextUrl = $_SERVER['PHP_SELF'] . '?' . http_build_query(array_merge($_GET, array('page' => $nextPage)));
+                    echo '<a href="' . $nextUrl . '" class="next-page">Page suivante</a>';
                 }
                 echo '</div>';
             } else {

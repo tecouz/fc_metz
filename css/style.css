@@ -126,3 +126,23 @@ a {
 .row-odd {
     background-color: #e6e6e6;
 }
+
+.pagination a.prev-page,
+.pagination a.next-page {
+    display: inline-block;
+    padding: 5px 10px;
+    text-decoration: none;
+    border-radius: 3px;
+}
+a.prev-page,
+a.next-page {
+    background-color: #6e0b14;
+    color: goldenrod;
+    border: 3px solid goldenrod;
+    border-radius: 5px;
+}
+
+.pagination a.prev-page:hover,
+.pagination a.next-page:hover {
+    background-color: #555;
+}
