@@ -201,7 +201,7 @@ $filteredPlayers = array_filter($players, function ($player) {
     return $matchesFilters;
 });
 
-// Calculer le nombre total de joueurs après le filtrage
+//Calculer le nombre total de joueurs après le filtrage
 $totalPlayersAfterFiltering = count($filteredPlayers);
 
 // Calculer le nombre total de pages
@@ -301,49 +301,46 @@ $totalPages = ceil($totalPlayersAfterFiltering / $playersPerPage);
             if (count($filteredPlayers) > 0) {
                 echo "<table>";
                 echo "<tr><th>Nom</th><th>Prénom</th><th>Poste</th><th>Club</th><th>Âge</th><th>Évaluation</th><th>Nationalité</th><th>Pied fort</th><th>Taille</th><th>Poids</th></tr>";
+
                 $rowCount = 0;
+
                 foreach ($filteredPlayers as $player) {
                     $rowClass = ($rowCount % 2 == 0) ? 'row-even' : 'row-odd'; // Classe CSS pour alterner les couleurs de ligne
                     echo "<tr class='$rowClass'>";
 
                     // Nom (shortName)
                     $playerShortName = array_key_exists('shortName', $player) ? htmlspecialchars($player['shortName']) : '';
-                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "'>" . $playerShortName . "</a></td>";
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "'>" . $playerShortName . "</a></td>";
 
                     // Prénom
                     $playerFirstName = array_key_exists('firstName', $player) ? htmlspecialchars($player['firstName']) : '';
-                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "'>" . $playerFirstName . "</a></td>";
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "'>" . $playerFirstName . "</a></td>";
 
                     // Poste
                     $playerPosition = array_key_exists('role', $player) && is_array($player['role']) && array_key_exists('name', $player['role']) ? htmlspecialchars($player['role']['name']) : '';
-                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "'>" . $playerPosition . "</a></td>";
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "'>" . $playerPosition . "</a></td>";
 
                     // Club (obtenu via l'URL de Teams)
                     $teamUrl = 'https://apirest.wyscout.com/v3/teams/' . $player['currentTeamId'];
                     $teamCurl = curl_init();
-                    curl_setopt_array(
-                        $teamCurl,
-                        array(
-                            CURLOPT_URL => $teamUrl,
-                            CURLOPT_RETURNTRANSFER => true,
-                            CURLOPT_ENCODING => '',
-                            CURLOPT_MAXREDIRS => 10,
-                            CURLOPT_TIMEOUT => 0,
-                            CURLOPT_FOLLOWLOCATION => true,
-                            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                            CURLOPT_CUSTOMREQUEST => 'GET',
-                            CURLOPT_HTTPHEADER => array(
-                                'Authorization: Basic cmM4ajZiai15ZnM1czAyZW4tcnBkamtyai1ndHRuZ2lodW8wOiEyOVJMUHZFK283aWhOOlRCKigpWiE3JUpzLm5NUg=='
-                            ),
-                        )
+                    curl_setopt_array($teamCurl, array(
+                        CURLOPT_URL => $teamUrl,
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_ENCODING => '',
+                        CURLOPT_MAXREDIRS => 10,
+                        CURLOPT_TIMEOUT => 0,
+                        CURLOPT_FOLLOWLOCATION => true,
+                        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                        CURLOPT_CUSTOMREQUEST => 'GET',
+                        CURLOPT_HTTPHEADER => array('Authorization: Basic cmM4ajZiai15ZnM1czAyZW4tcnBkamtyai1ndHRuZ2lodW8wOiEyOVJMUHZFK283aWhOOlRCKigpWiE3JUpzLm5NUg==')
+                    )
                     );
                     curl_setopt($teamCurl, CURLOPT_SSL_VERIFYPEER, false);
                     $teamResponse = curl_exec($teamCurl);
                     curl_close($teamCurl);
-
                     $teamData = json_decode($teamResponse, true);
                     $playerClub = array_key_exists('name', $teamData) ? htmlspecialchars($teamData['name']) : '';
-                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "'>" . $playerClub . "</a></td>";
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "'>" . $playerClub . "</a></td>";
 
                     // Âge
                     $playerBirthDate = array_key_exists('birthDate', $player) ? $player['birthDate'] : '';
@@ -351,42 +348,60 @@ $totalPages = ceil($totalPlayersAfterFiltering / $playersPerPage);
                         $birthDate = new DateTime($playerBirthDate);
                         $now = new DateTime();
                         $age = $now->diff($birthDate)->y;
-                        echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "'>" . $age . "</a></td>";
+                        echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "'>" . $age . "</a></td>";
                     } else {
-                        echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "'>-</a></td>"; // Afficher un tiret si la date de naissance n'est pas disponible
+                        echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "'>-</a></td>"; // Afficher un tiret si la date de naissance n'est pas disponible
                     }
 
                     // Évaluation
                     $playerEvaluation = array_key_exists('evaluation', $player) ? htmlspecialchars($player['evaluation']) : '';
-                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "' style='background-color: " . getBackgroundColor($playerEvaluation) . ";'>" . $playerEvaluation . "</a></td>";
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "' style='background-color: " . getBackgroundColor($playerEvaluation) . ";'>" . $playerEvaluation . "</a></td>";
 
                     // Nationalité
                     $playerNationality = array_key_exists('passportArea', $player) && is_array($player['passportArea']) && array_key_exists('name', $player['passportArea']) ? htmlspecialchars($player['passportArea']['name']) : '';
-                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "'>" . $playerNationality . "</a></td>";
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "'>" . $playerNationality . "</a></td>";
 
                     // Pied fort
                     $playerFoot = array_key_exists('foot', $player) && isset($player['foot']) ? htmlspecialchars($player['foot']) : '';
-                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "'>" . $playerFoot . "</a></td>";
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "'>" . $playerFoot . "</a></td>";
 
                     // Taille
                     $playerHeight = array_key_exists('height', $player) ? htmlspecialchars($player['height']) : '';
-                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "'>" . $playerHeight . "</a></td>";
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "'>" . $playerHeight . "</a></td>";
 
                     // Poids
                     $playerWeight = array_key_exists('weight', $player) ? htmlspecialchars($player['weight']) : '';
-                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "'>" . $playerWeight . "</a></td>";
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "'>" . $playerWeight . "</a></td>";
 
                     echo "</tr>";
                     $rowCount++;
                 }
                 echo "</table>";
 
+                // Construire la chaîne de requête sans le paramètre 'page'
+                $queryString = http_build_query(array_merge($_GET, array('page' => null)));
+
                 // Afficher les liens de pagination
                 echo '<div class="pagination">';
-                $queryString = http_build_query(array_merge($_GET, array('page' => null))); // Construire la chaîne de requête sans le paramètre 'page'
+
+                // Bouton "Précédent"
+                if ($currentPage > 1) {
+                    $prevPage = $currentPage - 1;
+                    $prevQueryString = $queryString . ($queryString ? '&' : '') . 'page=' . $prevPage;
+                    echo '<a href="?' . $prevQueryString . '" class="prev-button">Précédent</a>';
+                }
+
+                // Liens de pagination
                 for ($page = 1; $page <= $totalPages; $page++) {
-                    $pageQueryString = $queryString . ($queryString ? '&' : '') . 'page=' . $page; // Ajouter le paramètre 'page' à la chaîne de requête
-                    echo '<a href="?' . $pageQueryString . '" ' . ($page == $currentPage ? 'class="active"' : '') . '>' . $page . '</a>'; // Lien de pagination avec classe CSS active pour la page actuelle
+                    $pageQueryString = $queryString . ($queryString ? '&' : '') . 'page=' . $page;
+                    echo '<a href="?' . $pageQueryString . '" ' . ($page == $currentPage ? 'class="active"' : '') . '>' . $page . '</a>';
+                }
+
+                // Bouton "Suivant"
+                if ($currentPage < 50) {
+                    $nextPage = $currentPage + 1;
+                    $nextQueryString = $queryString . ($queryString ? '&' : '') . 'page=' . $nextPage;
+                    echo '<a href="?' . $nextQueryString . '" class="next-button">Suivant</a>';
                 }
                 echo '</div>';
             } else {
