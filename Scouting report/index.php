@@ -33,6 +33,35 @@ if ($player_id !== null && !isset($_GET['player_id'])) {
     header("Location: " . $_SERVER['PHP_SELF'] . "?player_id=" . $player_id);
     exit();
 }
+
+// Récupérer les informations du joueur à partir de l'API WyScout
+$competitionId = 123; // Remplacez par l'ID de la compétition appropriée
+$playerId = $player_id; // Utilisez l'ID du joueur récupéré précédemment
+
+$apiUrl = "https://apirest.wyscout.com/v3/competitions/$competitionId/players/$playerId";
+$headers = array(
+    "Authorization: Bearer <votre_jeton_d_accès>",
+    "Content-Type: application/json"
+);
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $apiUrl);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+curl_close($ch);
+
+$playerData = json_decode($response, true);
+$playerName = '';
+
+// Vérifier si les données du joueur sont disponibles
+if (!is_null($playerData) && isset($playerData['firstName']) && isset($playerData['lastName'])) {
+    $playerName = $playerData['firstName'] . ' ' . $playerData['lastName'];
+} else {
+    // Gérer le cas où les données du joueur ne sont pas disponibles
+    $playerName = 'Nom du joueur indisponible';
+}
 ?>
 
 <!DOCTYPE html>
@@ -59,9 +88,8 @@ if ($player_id !== null && !isset($_GET['player_id'])) {
 
         <?php
         if ($player_id !== null) {
-            $stmt = $db->prepare("SELECT sr.scouting_report_date, sr.scouting_report_name, sr.scouting_report_firstname, sr.scouting_report_pdf, sr.scouting_report_player_evaluation, p.player_name
+            $stmt = $db->prepare("SELECT sr.scouting_report_date, sr.scouting_report_name, sr.scouting_report_firstname, sr.scouting_report_pdf, sr.scouting_report_player_evaluation
                                   FROM scouting_report sr
-                                  INNER JOIN player p ON sr.player_id = p.player_id
                                   WHERE sr.player_id = ?");
             $stmt->bindParam(1, $player_id, PDO::PARAM_INT);
             $stmt->execute();
@@ -69,8 +97,7 @@ if ($player_id !== null && !isset($_GET['player_id'])) {
             $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if (count($reports) > 0) {
-                $player_name = $reports[0]['player_name'];
-                echo "<h3>Rapport de Scout pour " . htmlspecialchars($player_name) . "</h3>";
+                echo "<h3>Rapport de Scout pour " . htmlspecialchars($playerName) . "</h3>";
                 foreach ($reports as $report) {
                     echo "<div class='report-card'>";
                     echo "<p><strong>Date :</strong> " . htmlspecialchars($report['scouting_report_date']) . "</p>";

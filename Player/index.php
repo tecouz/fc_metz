@@ -2,8 +2,8 @@
 require_once $_SERVER["DOCUMENT_ROOT"] . "/include/connect.php";
 require_once $_SERVER["DOCUMENT_ROOT"] . "/include/protect.php";
 
-// Récupérer l'ID du joueur et l'ID de la compétition à partir de l'URL
-$player_id = isset($_GET['player_id']) ? $_GET['player_id'] : null;
+// Récupérer l'ID du joueur à partir du cookie
+$player_id = isset($_COOKIE['player_id']) ? $_COOKIE['player_id'] : null;
 $competition_id = isset($_GET['competition_id']) ? $_GET['competition_id'] : null;
 
 // Stocker l'ID du joueur et l'ID de la compétition dans des cookies
@@ -21,7 +21,7 @@ if ($competition_id !== null) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Statistique</title>
+    <title>Passeport</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,8 +36,8 @@ if ($competition_id !== null) {
     <div class="containerPage">
         <div class="player-header">
             <h1>Informations du joueur</h1>
-            <?php if ($player_id !== null) : ?>
-            <a href="../CRUD/process.php?player_id=<?php echo $player_id; ?>" class="edit-button">Modifier</a>
+            <?php if ($player_id !== null): ?>
+                <a href="form.php?player_id=<?php echo $player_id; ?>" class="edit-button">Modifier</a>
             <?php endif; ?>
         </div>
 
@@ -77,27 +77,7 @@ if ($competition_id !== null) {
                     if (!empty($player_data)) {
                         echo '<div class="container">';
 
-                        // Récupérer la date d'expiration du contrat depuis l'API WyScout
-                        $contract_info_url = 'https://apirest.wyscout.com/v3/players/' . $player_id . '/contractinfo';
-                        $contract_info_response = @file_get_contents($contract_info_url, false, stream_context_create(array(
-                            'http' => array(
-                                'header' => "Authorization: Basic cmM4ajZiai15ZnM1czAyZW4tcnBkamtyai1ndHRuZ2lodW8wOiEyOVJMUHZFK283aWhOOlRCKigpWiE3JUpzLm5NUg==\r\n"
-                            )
-                        )));
-
-                        if ($contract_info_response !== false) {
-                            $contract_info = json_decode($contract_info_response, true);
-                            $contract_expiration_date = isset($contract_info['contractExpirationDate']) ? $contract_info['contractExpirationDate'] : '';
-
-                            // Afficher la carte de la date d'expiration du contrat uniquement si la date n'est pas vide
-                            if (!empty($contract_expiration_date)) {
-                                echo "<div class='carte'>";
-                                echo "<h3>Date d'expiration du contrat</h3>";
-                                echo "<p>$contract_expiration_date</p>";
-                                echo "</div>";
-                            }
-                        }
-
+                        // Afficher les informations de base du joueur
                         foreach ($player_data as $key => $value) {
                             // Exclure les clés non désirées
                             if ($key !== 'wyId' && $key !== 'imageDataURL' && $key !== 'shortName' && $key !== 'middleName' && $key !== 'gender' && $key !== 'passportArea') {
@@ -121,11 +101,17 @@ if ($competition_id !== null) {
                                     } elseif ($key === 'currentTeamId') {
                                         // Récupérer le nom de l'équipe depuis l'API WyScout
                                         $team_url = 'https://apirest.wyscout.com/v3/teams/' . $value;
-                                        $team_response = @file_get_contents($team_url, false, stream_context_create(array(
-                                            'http' => array(
-                                                'header' => "Authorization: Basic cmM4ajZiai15ZnM1czAyZW4tcnBkamtyai1ndHRuZ2lodW8wOiEyOVJMUHZFK283aWhOOlRCKigpWiE3JUpzLm5NUg==\r\n"
+                                        $team_response = @file_get_contents(
+                                            $team_url,
+                                            false,
+                                            stream_context_create(
+                                                array(
+                                                    'http' => array(
+                                                        'header' => "Authorization: Basic cmM4ajZiai15ZnM1czAyZW4tcnBkamtyai1ndHRuZ2lodW8wOiEyOVJMUHZFK283aWhOOlRCKigpWiE3JUpzLm5NUg==\r\n"
+                                                    )
+                                                )
                                             )
-                                        )));
+                                        );
                                         if ($team_response !== false) {
                                             $team_data = json_decode($team_response, true);
                                             $team_name = isset($team_data['name']) ? htmlspecialchars($team_data['name']) : '';
@@ -134,11 +120,17 @@ if ($competition_id !== null) {
                                     } elseif ($key === 'currentNationalTeamId') {
                                         // Récupérer le nom de l'équipe nationale depuis l'API WyScout
                                         $national_team_url = 'https://apirest.wyscout.com/v3/teams/' . $value;
-                                        $national_team_response = @file_get_contents($national_team_url, false, stream_context_create(array(
-                                            'http' => array(
-                                                'header' => "Authorization: Basic cmM4ajZiai15ZnM1czAyZW4tcnBkamtyai1ndHRuZ2lodW8wOiEyOVJMUHZFK283aWhOOlRCKigpWiE3JUpzLm5NUg==\r\n"
+                                        $national_team_response = @file_get_contents(
+                                            $national_team_url,
+                                            false,
+                                            stream_context_create(
+                                                array(
+                                                    'http' => array(
+                                                        'header' => "Authorization: Basic cmM4ajZiai15ZnM1czAyZW4tcnBkamtyai1ndHRuZ2lodW8wOiEyOVJMUHZFK283aWhOOlRCKigpWiE3JUpzLm5NUg==\r\n"
+                                                    )
+                                                )
                                             )
-                                        )));
+                                        );
                                         if ($national_team_response !== false) {
                                             $national_team_data = json_decode($national_team_response, true);
                                             $national_team_name = isset($national_team_data['name']) ? htmlspecialchars($national_team_data['name']) : '';
@@ -154,6 +146,42 @@ if ($competition_id !== null) {
                                 }
                             }
                         }
+
+                        // Récupérer les informations supplémentaires du joueur depuis la base de données
+                        $sql = "SELECT player_contact_agence, player_agence, player_contrat FROM player WHERE player_wyId = ?";
+                        $stmt = $db->prepare($sql);
+                        $stmt->bindParam(1, $player_id, PDO::PARAM_INT);
+                        $stmt->execute();
+                        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                        if ($result) {
+                            $player_contact_agence = $result['player_contact_agence'];
+                            $player_agence = $result['player_agence'];
+                            $player_contrat = $result['player_contrat'];
+
+                            // Afficher les informations supplémentaires du joueur dans des cartes séparées
+                            if (!empty($player_contact_agence)) {
+                                echo "<div class='carte'>";
+                                echo "<h3>Contact de l'agence</h3>";
+                                echo "<p>$player_contact_agence</p>";
+                                echo "</div>";
+                            }
+
+                            if (!empty($player_agence)) {
+                                echo "<div class='carte'>";
+                                echo "<h3>Agence</h3>";
+                                echo "<p>$player_agence</p>";
+                                echo "</div>";
+                            }
+
+                            if (!empty($player_contrat)) {
+                                echo "<div class='carte'>";
+                                echo "<h3>Date de contrat</h3>";
+                                echo "<p>$player_contrat</p>";
+                                echo "</div>";
+                            }
+                        }
+
                         echo '</div>';
                     } else {
                         echo "Aucune information trouvée pour ce joueur";

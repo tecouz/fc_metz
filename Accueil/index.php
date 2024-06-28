@@ -292,7 +292,6 @@ $totalPages = ceil($totalPlayersAfterFiltering / $playersPerPage);
 
                 <input type="submit" value="Rechercher">
             </form>
-
         </div>
 
         <div class="listPlayer">
@@ -310,17 +309,18 @@ $totalPages = ceil($totalPlayersAfterFiltering / $playersPerPage);
 
                     // Nom (shortName)
                     $playerShortName = array_key_exists('shortName', $player) ? htmlspecialchars($player['shortName']) : '';
-                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "'>" . $playerShortName . "</a></td>";
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "' onclick=\"setCookies('" . $player['wyId'] . "', '" . $competitionId . "'); return true;\">" . $playerShortName . "</a></td>";
 
                     // Prénom
                     $playerFirstName = array_key_exists('firstName', $player) ? htmlspecialchars($player['firstName']) : '';
-                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "'>" . $playerFirstName . "</a></td>";
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "' onclick=\"setCookies('" . $player['wyId'] . "', '" . $competitionId . "'); return true;\">" . $playerFirstName . "</a></td>";
 
                     // Poste
                     $playerPosition = array_key_exists('role', $player) && is_array($player['role']) && array_key_exists('name', $player['role']) ? htmlspecialchars($player['role']['name']) : '';
-                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "'>" . $playerPosition . "</a></td>";
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "' onclick=\"setCookies('" . $player['wyId'] . "', '" . $competitionId . "'); return true;\">" . $playerPosition . "</a></td>";
 
                     // Club (obtenu via l'URL de Teams)
+                    $playerClub = ''; // Initialiser $playerClub avec une chaîne vide
                     $teamUrl = 'https://apirest.wyscout.com/v3/teams/' . $player['currentTeamId'];
                     $teamCurl = curl_init();
                     curl_setopt_array($teamCurl, array(
@@ -333,14 +333,13 @@ $totalPages = ceil($totalPlayersAfterFiltering / $playersPerPage);
                         CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
                         CURLOPT_CUSTOMREQUEST => 'GET',
                         CURLOPT_HTTPHEADER => array('Authorization: Basic cmM4ajZiai15ZnM1czAyZW4tcnBkamtyai1ndHRuZ2lodW8wOiEyOVJMUHZFK283aWhOOlRCKigpWiE3JUpzLm5NUg==')
-                    )
-                    );
+                    ));
                     curl_setopt($teamCurl, CURLOPT_SSL_VERIFYPEER, false);
                     $teamResponse = curl_exec($teamCurl);
                     curl_close($teamCurl);
                     $teamData = json_decode($teamResponse, true);
                     $playerClub = array_key_exists('name', $teamData) ? htmlspecialchars($teamData['name']) : '';
-                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "'>" . $playerClub . "</a></td>";
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "' onclick=\"setCookies('" . $player['wyId'] . "', '" . $competitionId . "'); return true;\">" . $playerClub . "</a></td>";
 
                     // Âge
                     $playerBirthDate = array_key_exists('birthDate', $player) ? $player['birthDate'] : '';
@@ -348,30 +347,30 @@ $totalPages = ceil($totalPlayersAfterFiltering / $playersPerPage);
                         $birthDate = new DateTime($playerBirthDate);
                         $now = new DateTime();
                         $age = $now->diff($birthDate)->y;
-                        echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "'>" . $age . "</a></td>";
+                        echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "' onclick=\"setCookies('" . $player['wyId'] . "', '" . $competitionId . "'); return true;\">" . $age . "</a></td>";
                     } else {
-                        echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "'>-</a></td>"; // Afficher un tiret si la date de naissance n'est pas disponible
+                        echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "' onclick=\"setCookies('" . $player['wyId'] . "', '" . $competitionId . "'); return true;\">-</a></td>"; // Afficher un tiret si la date de naissance n'est pas disponible
                     }
 
                     // Évaluation
                     $playerEvaluation = array_key_exists('evaluation', $player) ? htmlspecialchars($player['evaluation']) : '';
-                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "' style='background-color: " . getBackgroundColor($playerEvaluation) . ";'>" . $playerEvaluation . "</a></td>";
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "' onclick=\"setCookies('" . $player['wyId'] . "', '" . $competitionId . "'); return true;\" style='background-color: " . getBackgroundColor($playerEvaluation) . ";'>" . $playerEvaluation . "</a></td>";
 
                     // Nationalité
                     $playerNationality = array_key_exists('passportArea', $player) && is_array($player['passportArea']) && array_key_exists('name', $player['passportArea']) ? htmlspecialchars($player['passportArea']['name']) : '';
-                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "'>" . $playerNationality . "</a></td>";
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "' onclick=\"setCookies('" . $player['wyId'] . "', '" . $competitionId . "'); return true;\">" . $playerNationality . "</a></td>";
 
                     // Pied fort
                     $playerFoot = array_key_exists('foot', $player) && isset($player['foot']) ? htmlspecialchars($player['foot']) : '';
-                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "'>" . $playerFoot . "</a></td>";
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "' onclick=\"setCookies('" . $player['wyId'] . "', '" . $competitionId . "'); return true;\">" . $playerFoot . "</a></td>";
 
                     // Taille
                     $playerHeight = array_key_exists('height', $player) ? htmlspecialchars($player['height']) : '';
-                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "'>" . $playerHeight . "</a></td>";
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "' onclick=\"setCookies('" . $player['wyId'] . "', '" . $competitionId . "'); return true;\">" . $playerHeight . "</a></td>";
 
                     // Poids
                     $playerWeight = array_key_exists('weight', $player) ? htmlspecialchars($player['weight']) : '';
-                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "'>" . $playerWeight . "</a></td>";
+                    echo "<td><a href='../Player/index.php?player_id=" . $player['wyId'] . "&competition_id=" . $competitionId . "' onclick=\"setCookies('" . $player['wyId'] . "', '" . $competitionId . "'); return true;\">" . $playerWeight . "</a></td>";
 
                     echo "</tr>";
                     $rowCount++;
@@ -410,8 +409,14 @@ $totalPages = ceil($totalPlayersAfterFiltering / $playersPerPage);
             ?>
         </div>
     </div>
+    <script>
+    function setCookies(playerId, competitionId) {
+        // Définir les cookies
+        document.cookie = "player_id=" + playerId + "; path=/";
+        document.cookie = "competition_id=" + competitionId + "; path=/";
+    }
+    </script>
     <script src="../js/filter.js"></script>
-
 </body>
 
 </html>

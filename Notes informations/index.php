@@ -16,6 +16,35 @@ if ($player_id !== null && !isset($_GET['player_id'])) {
     header("Location: " . $_SERVER['PHP_SELF'] . "?player_id=" . $player_id);
     exit();
 }
+
+// Récupérer les informations du joueur à partir de l'API WyScout
+$competitionId = 123; // Remplacez par l'ID de la compétition appropriée
+$playerId = $player_id; // Utilisez l'ID du joueur récupéré précédemment
+
+$apiUrl = "https://apirest.wyscout.com/v3/competitions/$competitionId/players/$playerId";
+$headers = array(
+    "Authorization: Bearer <votre_jeton_d_accès>",
+    "Content-Type: application/json"
+);
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $apiUrl);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+curl_close($ch);
+
+$playerData = json_decode($response, true);
+$playerName = '';
+
+// Vérifier si les données du joueur sont disponibles
+if (!is_null($playerData) && isset($playerData['firstName']) && isset($playerData['lastName'])) {
+    $playerName = $playerData['firstName'] . ' ' . $playerData['lastName'];
+} else {
+    // Gérer le cas où les données du joueur ne sont pas disponibles
+    $playerName = 'Nom du joueur indisponible';
+}
 ?>
 
 <!DOCTYPE html>
@@ -31,15 +60,58 @@ if ($player_id !== null && !isset($_GET['player_id'])) {
 </head>
 
 <body>
-    <?php
-    include "../Nav/nav.php";
-    ?>
+    <?php include "../Nav/nav.php"; ?>
 
     <div class="containerPage">
-
         <h1>Notes d'informations</h1>
 
-        <p>historique des transfert (pas faisable sans l'api)</p>
+        <?php
+        // Récupérer l'historique des transferts depuis l'API WyScout
+        $transfers_url = 'https://apirest.wyscout.com/v3/players/' . $player_id . '/transfers';
+        $transfers_response = @file_get_contents($transfers_url, false, stream_context_create(
+            array(
+                'http' => array(
+                    'header' => "Authorization: Basic cmM4ajZiai15ZnM1czAyZW4tcnBkamtyai1ndHRuZ2lodW8wOiEyOVJMUHZFK283aWhOOlRCKigpWiE3JUpzLm5NUg==\r\n"
+                )
+            )
+        )
+        );
+
+        if ($transfers_response !== false) {
+            $transfers_data = json_decode($transfers_response, true);
+
+            if (!empty($transfers_data['transfer'])) {
+                echo "<h2>Historique des transferts</h2>";
+                echo "<table>";
+                echo "<tr><th>Date de début</th><th>Date de fin</th><th>Équipe de départ</th><th>Équipe d'arrivée</th><th>Type</th><th>Valeur</th></tr>";
+
+                foreach ($transfers_data['transfer'] as $transfer) {
+                    $start_date = isset($transfer['startDate']) ? $transfer['startDate'] : '';
+                    $end_date = isset($transfer['endDate']) ? $transfer['endDate'] : '';
+                    $team_from_name = isset($transfer['fromTeamName']) ? htmlspecialchars($transfer['fromTeamName']) : '';
+                    $team_to_name = isset($transfer['toTeamName']) ? htmlspecialchars($transfer['toTeamName']) : '';
+                    $transfer_type = isset($transfer['type']) ? $transfer['type'] : '';
+                    $transfer_value = isset($transfer['value']) ? $transfer['value'] : '0';
+                    $transfer_currency = isset($transfer['currency']) ? $transfer['currency'] : '';
+
+                    echo "<tr>";
+                    echo "<td>$start_date</td>";
+                    echo "<td>$end_date</td>";
+                    echo "<td>$team_from_name</td>";
+                    echo "<td>$team_to_name</td>";
+                    echo "<td>$transfer_type</td>";
+                    echo "<td>$transfer_value $transfer_currency</td>";
+                    echo "</tr>";
+                }
+
+                echo "</table>";
+            } else {
+                echo "Aucun historique de transfert trouvé pour ce joueur.";
+            }
+        } else {
+            echo "Erreur lors de la récupération de l'historique des transferts.";
+        }
+        ?>
 
         <div>
             <p>historique des blessures</p>
@@ -65,9 +137,8 @@ if ($player_id !== null && !isset($_GET['player_id'])) {
 
         <?php
         // Requête SQL pour récupérer les notes du joueur sélectionné
-        $sql = "SELECT n.note_content, n.note_date, CONCAT(p.player_name, ' ', p.player_firstname) AS player_fullname, u.users_name
+        $sql = "SELECT n.note_content, n.note_date, u.users_name
                 FROM note n
-                JOIN player p ON n.player_id = p.player_id
                 JOIN users u ON n.users_id = u.users_id
                 WHERE n.player_id = :player_id";
 
@@ -77,14 +148,14 @@ if ($player_id !== null && !isset($_GET['player_id'])) {
 
         if ($result && $stmt->rowCount() > 0) {
             // Afficher les notes dans un tableau HTML
+            echo "<h3>Notes pour " . htmlspecialchars($playerName) . "</h3>";
             echo "<table>";
-            echo "<tr><th>Note Content</th><th>Note Date</th><th>Player Name</th><th>User Name</th></tr>";
+            echo "<tr><th>Note Content</th><th>Note Date</th><th>User Name</th></tr>";
 
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 echo "<tr>";
                 echo "<td>" . $row['note_content'] . "</td>";
                 echo "<td>" . $row['note_date'] . "</td>";
-                echo "<td>" . $row['player_fullname'] . "</td>"; // Afficher le nom complet du joueur
                 echo "<td>" . $row['users_name'] . "</td>";
                 echo "</tr>";
             }
@@ -96,7 +167,7 @@ if ($player_id !== null && !isset($_GET['player_id'])) {
         ?>
 
         <?php if ($player_id !== null): ?>
-            <a href="form.php?player_id=<?php echo $player_id; ?>">Ajouter une note</a>
+        <a href="form.php?player_id=<?php echo $player_id; ?>">Ajouter une note</a>
         <?php endif; ?>
     </div>
     <script src="../js/copy.js"></script>
