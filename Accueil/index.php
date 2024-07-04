@@ -1,4 +1,5 @@
 <?php
+// Inclure les fichiers nécessaires pour la connexion à la base de données et la protection des pages
 require_once $_SERVER["DOCUMENT_ROOT"] . "/include/connect.php";
 require_once $_SERVER["DOCUMENT_ROOT"] . "/include/protect.php";
 
@@ -7,6 +8,7 @@ function convertDate($date)
 {
     $yearMonthDayFormat = '/^(\d{4})-(\d{2})-(\d{2})$/';
 
+    // Vérifier si la date correspond au format année-mois-jour
     if (preg_match($yearMonthDayFormat, $date, $matches)) {
         return $date;
     } else {
@@ -254,17 +256,13 @@ $totalPages = ceil($totalPlayersAfterFiltering / $playersPerPage);
                     <label for="position">Poste :</label>
                     <select id="position" name="position">
                         <option value="">Tous les postes</option>
-                        <option value="attaquant"
-                            <?php echo isset($_GET['position']) && $_GET['position'] == 'attaquant' ? 'selected' : ''; ?>>
+                        <option value="attaquant" <?php echo isset($_GET['position']) && $_GET['position'] == 'attaquant' ? 'selected' : ''; ?>>
                             Attaquant</option>
-                        <option value="milieu"
-                            <?php echo isset($_GET['position']) && $_GET['position'] == 'milieu' ? 'selected' : ''; ?>>
+                        <option value="milieu" <?php echo isset($_GET['position']) && $_GET['position'] == 'milieu' ? 'selected' : ''; ?>>
                             Milieu</option>
-                        <option value="defenseur"
-                            <?php echo isset($_GET['position']) && $_GET['position'] == 'defenseur' ? 'selected' : ''; ?>>
+                        <option value="defenseur" <?php echo isset($_GET['position']) && $_GET['position'] == 'defenseur' ? 'selected' : ''; ?>>
                             Défenseur</option>
-                        <option value="gardien"
-                            <?php echo isset($_GET['position']) && $_GET['position'] == 'gardien' ? 'selected' : ''; ?>>
+                        <option value="gardien" <?php echo isset($_GET['position']) && $_GET['position'] == 'gardien' ? 'selected' : ''; ?>>
                             Gardien</option>
                     </select>
                 </div>
@@ -333,7 +331,8 @@ $totalPages = ceil($totalPlayersAfterFiltering / $playersPerPage);
                         CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
                         CURLOPT_CUSTOMREQUEST => 'GET',
                         CURLOPT_HTTPHEADER => array('Authorization: Basic cmM4ajZiai15ZnM1czAyZW4tcnBkamtyai1ndHRuZ2lodW8wOiEyOVJMUHZFK283aWhOOlRCKigpWiE3JUpzLm5NUg==')
-                    ));
+                    )
+                    );
                     curl_setopt($teamCurl, CURLOPT_SSL_VERIFYPEER, false);
                     $teamResponse = curl_exec($teamCurl);
                     curl_close($teamCurl);
@@ -410,11 +409,11 @@ $totalPages = ceil($totalPlayersAfterFiltering / $playersPerPage);
         </div>
     </div>
     <script>
-    function setCookies(playerId, competitionId) {
-        // Définir les cookies
-        document.cookie = "player_id=" + playerId + "; path=/";
-        document.cookie = "competition_id=" + competitionId + "; path=/";
-    }
+        function setCookies(playerId, competitionId) {
+            // Définir les cookies
+            document.cookie = "player_id=" + playerId + "; path=/";
+            document.cookie = "competition_id=" + competitionId + "; path=/";
+        }
     </script>
     <script src="../js/filter.js"></script>
 </body>

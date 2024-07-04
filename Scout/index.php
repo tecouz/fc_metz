@@ -1,8 +1,12 @@
 <?php
 require_once $_SERVER["DOCUMENT_ROOT"] . "/include/connect.php";
+// Inclure le fichier de connexion à la base de données
+
 require_once $_SERVER["DOCUMENT_ROOT"] . "/include/protect.php";
+// Inclure le fichier de protection (probablement pour la gestion des sessions ou des autorisations)
 
 $currentPage = isset($_GET['page']) ? $_GET['page'] : 1;
+// Récupérer la page actuelle à partir du paramètre GET 'page', ou définir à 1 par défaut
 
 if (isset($_GET['month']) && isset($_GET['year']) && $_GET['page'] == 2) {
     $month = intval($_GET['month']);
@@ -10,7 +14,7 @@ if (isset($_GET['month']) && isset($_GET['year']) && $_GET['page'] == 2) {
     echo getEventsForMonth($month, $year);
     exit;
 }
-
+// Si les paramètres 'month' et 'year' sont présents dans l'URL et que la page est 2, afficher les événements pour le mois et l'année spécifiés
 
 // Requête SQL pour récupérer les utilisateurs avec le rôle "scout"
 $sql = "SELECT u.users_name, u.users_firstname
@@ -22,6 +26,7 @@ $sql = "SELECT u.users_name, u.users_firstname
 $stmt = $db->prepare($sql);
 $stmt->execute();
 $scouts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Récupérer la liste des utilisateurs ayant le rôle "scout" depuis la base de données
 
 function getEventsForMonth($month, $year)
 {
@@ -59,10 +64,12 @@ function getEventsForMonth($month, $year)
 
     return $html;
 }
+// Fonction pour récupérer les événements d'un mois et d'une année donnés, et générer le HTML pour les afficher
 
 $today = new DateTime();
 $currentMonth = $today->format('n');
 $currentYear = $today->format('Y');
+// Récupérer le mois et l'année actuels
 ?>
 
 <!DOCTYPE html>

@@ -1,6 +1,9 @@
 <?php
 require_once $_SERVER["DOCUMENT_ROOT"] . "/include/connect.php";
+// Inclure le fichier de connexion à la base de données
+
 require_once $_SERVER["DOCUMENT_ROOT"] . "/include/protect.php";
+// Inclure le fichier de protection (probablement pour la gestion des sessions ou des autorisations)
 
 // Vérifier si le formulaire a été soumis
 if ($_SERVER["REQUEST_METHOD"] == "POST") {

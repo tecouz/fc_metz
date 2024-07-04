@@ -1,5 +1,6 @@
 <?php
 require_once $_SERVER["DOCUMENT_ROOT"] . "/include/connect.php";
+// Inclure le fichier de connexion à la base de données
 
 // Récupérer l'ID du joueur à partir du cookie
 $player_id = isset($_COOKIE['player_id']) ? $_COOKIE['player_id'] : null;

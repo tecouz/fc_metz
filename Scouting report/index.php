@@ -1,6 +1,9 @@
 <?php
 require_once $_SERVER["DOCUMENT_ROOT"] . "/include/connect.php";
+// Inclure le fichier de connexion à la base de données
+
 require_once $_SERVER["DOCUMENT_ROOT"] . "/include/protect.php";
+// Inclure le fichier de protection (probablement pour la gestion des sessions ou des autorisations)
 
 // Fonction pour déterminer la couleur de fond en fonction de l'évaluation
 function getBackgroundColor($evaluation)
@@ -80,10 +83,10 @@ if (!is_null($playerData) && isset($playerData['firstName']) && isset($playerDat
 
     <div class="containerPage">
         <?php if ($player_id !== null): ?>
-        <div class="add-report-button">
-            <a href="form.php?player_id=<?php echo $player_id; ?>" class="btn btn-primary">Ajouter un rapport de
-                scout</a>
-        </div>
+            <div class="add-report-button">
+                <a href="form.php?player_id=<?php echo $player_id; ?>" class="btn btn-primary">Ajouter un rapport de
+                    scout</a>
+            </div>
         <?php endif; ?>
 
         <?php

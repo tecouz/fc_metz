@@ -1,3 +1,4 @@
+<!-- page de navigation integrer une fois que le joueur a été slectionné -->
 <!DOCTYPE html>
 <html lang="en">
 
